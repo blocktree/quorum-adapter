@@ -344,9 +344,10 @@ func (txFee *txFeeInfo) CalcFee() error {
 }
 
 type CallMsg struct {
-	From     string `json:"from"`
-	To       string `json:"to"`
-	Data     string `json:"data"`
+	From  string `json:"from"`
+	To    string `json:"to"`
+	Data  string `json:"data"`
+	Value string `json:"value"`
 }
 
 type CallResult map[string]interface{}
@@ -358,7 +359,7 @@ func (r CallResult) MarshalJSON() ([]byte, error) {
 		if isByteArray(val.Type()) {
 			newR[key] = toHex(value)
 		} else {
-			newR[key]=value
+			newR[key] = value
 		}
 	}
 	return json.Marshal(newR)

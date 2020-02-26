@@ -949,6 +949,8 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 		Reason:      "",
 	}
 
+	scReceipt.GenWxID()
+
 	result.extractContractData[targetResult.SourceKey] = scReceipt
 
 }

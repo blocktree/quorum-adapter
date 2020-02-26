@@ -406,7 +406,7 @@ func (decoder *EthTransactionDecoder) SubmitRawTransaction(wrapper openwallet.Wa
 	}
 
 	//交易成功，地址nonce+1并记录到缓存
-	decoder.UpdateAddressNonce(wrapper, from, tx.Nonce()+1)
+	decoder.wm.UpdateAddressNonce(wrapper, from, tx.Nonce()+1)
 
 	rawTx.TxID = txid
 	rawTx.IsSubmit = true
@@ -877,7 +877,7 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 
 	var nonce uint64
 	if tmpNonce == nil {
-		txNonce := decoder.GetAddressNonce(wrapper, addrBalance.Address)
+		txNonce := decoder.wm.GetAddressNonce(wrapper, addrBalance.Address)
 		//decoder.wm.Log.Debugf("txNonce: %d", txNonce)
 		nonce = txNonce
 	} else {
@@ -956,50 +956,5 @@ func (decoder *EthTransactionDecoder) CreateSummaryRawTransactionWithError(wrapp
 		return decoder.CreateErc20TokenSummaryRawTransaction(wrapper, sumRawTx)
 	} else {
 		return decoder.CreateSimpleSummaryRawTransaction(wrapper, sumRawTx)
-	}
-}
-
-// GetAddressNonce
-func (decoder *EthTransactionDecoder) GetAddressNonce(wrapper openwallet.WalletDAI, address string) uint64 {
-	var (
-		key           = decoder.wm.Symbol() + "-nonce"
-		nonce         uint64
-		nonce_db      interface{}
-		nonce_onchain uint64
-		err           error
-	)
-
-	//获取db记录的nonce并确认nonce值
-	nonce_db, _ = wrapper.GetAddressExtParam(address, key)
-
-	//判断nonce_db是否为空,为空则说明当前nonce是0
-	if nonce_db == nil {
-		nonce = 0
-	} else {
-		nonce = common.NewString(nonce_db).UInt64()
-	}
-
-	nonce_onchain, err = decoder.wm.GetTransactionCount(address)
-	if err != nil {
-		return nonce
-	}
-
-	//如果本地nonce_db > 链上nonce,采用本地nonce,否则采用链上nonce
-	if nonce > nonce_onchain {
-		decoder.wm.Log.Debugf("%s nonce_db=%v > nonce_chain=%v,Use nonce_db...", address, nonce_db, nonce_onchain)
-	} else {
-		nonce = nonce_onchain
-		decoder.wm.Log.Debugf("%s nonce_db=%v <= nonce_chain=%v,Use nonce_chain...", address, nonce_db, nonce_onchain)
-	}
-
-	return nonce
-}
-
-// UpdateAddressNonce
-func (decoder *EthTransactionDecoder) UpdateAddressNonce(wrapper openwallet.WalletDAI, address string, nonce uint64) {
-	key := decoder.wm.Symbol() + "-nonce"
-	err := wrapper.SetAddressExtParam(address, key, nonce)
-	if err != nil {
-		decoder.wm.Log.Errorf("WalletDAI SetAddressExtParam failed, err: %v", err)
 	}
 }

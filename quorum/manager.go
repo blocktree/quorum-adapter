@@ -455,6 +455,51 @@ func (wm *WalletManager) IsContract(address string) (bool, error) {
 
 }
 
+// GetAddressNonce
+func (wm *WalletManager) GetAddressNonce(wrapper openwallet.WalletDAI, address string) uint64 {
+	var (
+		key           = wm.Symbol() + "-nonce"
+		nonce         uint64
+		nonce_db      interface{}
+		nonce_onchain uint64
+		err           error
+	)
+
+	//获取db记录的nonce并确认nonce值
+	nonce_db, _ = wrapper.GetAddressExtParam(address, key)
+
+	//判断nonce_db是否为空,为空则说明当前nonce是0
+	if nonce_db == nil {
+		nonce = 0
+	} else {
+		nonce = common.NewString(nonce_db).UInt64()
+	}
+
+	nonce_onchain, err = wm.GetTransactionCount(address)
+	if err != nil {
+		return nonce
+	}
+
+	//如果本地nonce_db > 链上nonce,采用本地nonce,否则采用链上nonce
+	if nonce > nonce_onchain {
+		//wm.Log.Debugf("%s nonce_db=%v > nonce_chain=%v,Use nonce_db...", address, nonce_db, nonce_onchain)
+	} else {
+		nonce = nonce_onchain
+		//wm.Log.Debugf("%s nonce_db=%v <= nonce_chain=%v,Use nonce_chain...", address, nonce_db, nonce_onchain)
+	}
+
+	return nonce
+}
+
+// UpdateAddressNonce
+func (wm *WalletManager) UpdateAddressNonce(wrapper openwallet.WalletDAI, address string, nonce uint64) {
+	key := wm.Symbol() + "-nonce"
+	err := wrapper.SetAddressExtParam(address, key, nonce)
+	if err != nil {
+		wm.Log.Errorf("WalletDAI SetAddressExtParam failed, err: %v", err)
+	}
+}
+
 func AppendOxToAddress(addr string) string {
 	if strings.Index(addr, "0x") == -1 {
 		return "0x" + addr
