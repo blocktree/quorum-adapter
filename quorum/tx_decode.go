@@ -18,7 +18,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/blocktree/openwallet/common"
+	"github.com/blocktree/openwallet/v2/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/shopspring/decimal"
 	"math/big"
@@ -27,7 +27,7 @@ import (
 	"time"
 
 	"github.com/blocktree/go-owcrypt"
-	"github.com/blocktree/openwallet/openwallet"
+	"github.com/blocktree/openwallet/v2/openwallet"
 	ethcom "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"

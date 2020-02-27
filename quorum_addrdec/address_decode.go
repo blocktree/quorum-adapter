@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 	"github.com/blocktree/go-owaddress"
 	"github.com/blocktree/go-owcrypt"
-	"github.com/blocktree/openwallet/openwallet"
+	"github.com/blocktree/openwallet/v2/openwallet"
 	"strings"
 )
 

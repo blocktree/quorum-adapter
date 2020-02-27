@@ -17,10 +17,10 @@ package openwtester
 
 import (
 	"github.com/astaxie/beego/config"
-	"github.com/blocktree/openwallet/common/file"
-	"github.com/blocktree/openwallet/log"
-	"github.com/blocktree/openwallet/openw"
-	"github.com/blocktree/openwallet/openwallet"
+	"github.com/blocktree/openwallet/v2/common/file"
+	"github.com/blocktree/openwallet/v2/log"
+	"github.com/blocktree/openwallet/v2/openw"
+	"github.com/blocktree/openwallet/v2/openwallet"
 	"path/filepath"
 	"testing"
 )

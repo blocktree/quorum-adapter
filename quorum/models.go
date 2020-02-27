@@ -17,7 +17,7 @@ package quorum
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/blocktree/openwallet/common"
+	"github.com/blocktree/openwallet/v2/common"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcom "github.com/ethereum/go-ethereum/common"
@@ -29,9 +29,9 @@ import (
 	"time"
 
 	"github.com/blocktree/go-owcrypt"
-	"github.com/blocktree/openwallet/hdkeystore"
-	"github.com/blocktree/openwallet/log"
-	"github.com/blocktree/openwallet/openwallet"
+	"github.com/blocktree/openwallet/v2/hdkeystore"
+	"github.com/blocktree/openwallet/v2/log"
+	"github.com/blocktree/openwallet/v2/openwallet"
 )
 
 const (

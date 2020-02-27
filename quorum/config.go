@@ -16,7 +16,7 @@ package quorum
 
 import (
 	"github.com/blocktree/go-owcrypt"
-	"github.com/blocktree/openwallet/common/file"
+	"github.com/blocktree/openwallet/v2/common/file"
 	"math/big"
 	"path/filepath"
 	"strings"

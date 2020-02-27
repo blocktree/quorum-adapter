@@ -17,7 +17,7 @@ package quorum
 
 import (
 	"fmt"
-	"github.com/blocktree/openwallet/openwallet"
+	"github.com/blocktree/openwallet/v2/openwallet"
 )
 
 //SaveLocalBlockHead 记录区块高度和hash到本地
@@ -83,8 +83,8 @@ func (bs *BlockScanner) GetLocalBlock(height uint64) (*EthBlock, error) {
 
 	block := &EthBlock{
 		BlockHeader: BlockHeader{
-			BlockHash:       header.Hash,
-			BlockHeight:     header.Height,
+			BlockHash:   header.Hash,
+			BlockHeight: header.Height,
 		},
 	}
 
@@ -111,7 +111,6 @@ func (bs *BlockScanner) DeleteUnscanRecord(height uint64) error {
 	return bs.BlockchainDAI.DeleteUnscanRecordByHeight(height, bs.wm.Symbol())
 }
 
-
 //DeleteUnscanRecordByID 删除指定的未扫记录
 func (bs *BlockScanner) DeleteUnscanRecordByID(id string) error {
 
@@ -122,7 +121,6 @@ func (bs *BlockScanner) DeleteUnscanRecordByID(id string) error {
 	return bs.BlockchainDAI.DeleteUnscanRecordByID(id, bs.wm.Symbol())
 }
 
-
 func (bs *BlockScanner) GetUnscanRecords() ([]*openwallet.UnscanRecord, error) {
 
 	if bs.BlockchainDAI == nil {
@@ -131,7 +129,6 @@ func (bs *BlockScanner) GetUnscanRecords() ([]*openwallet.UnscanRecord, error) {
 
 	return bs.BlockchainDAI.GetUnscanRecords(bs.wm.Symbol())
 }
-
 
 //SupportBlockchainDAI 支持外部设置区块链数据访问接口
 //@optional

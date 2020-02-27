@@ -18,8 +18,8 @@ package openwtester
 import (
 	"encoding/hex"
 	"github.com/blocktree/go-owcrypt"
-	"github.com/blocktree/openwallet/log"
-	"github.com/blocktree/openwallet/openwallet"
+	"github.com/blocktree/openwallet/v2/log"
+	"github.com/blocktree/openwallet/v2/openwallet"
 	"testing"
 )
 

@@ -1,9 +1,9 @@
 package openwtester
 
 import (
+	"github.com/blocktree/openwallet/v2/log"
+	"github.com/blocktree/openwallet/v2/openw"
 	"github.com/blocktree/quorum-adapter/quorum"
-	"github.com/blocktree/openwallet/log"
-	"github.com/blocktree/openwallet/openw"
 )
 
 func init() {

@@ -20,13 +20,13 @@ package quorum
 //3. block height, block hash
 
 import (
-	"github.com/blocktree/openwallet/common"
+	"github.com/blocktree/openwallet/v2/common"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"math/big"
 	"strings"
 	"time"
 
-	"github.com/blocktree/openwallet/openwallet"
+	"github.com/blocktree/openwallet/v2/openwallet"
 
 	//	"golang.org/x/text/currency"
 

@@ -16,8 +16,8 @@
 package quorum
 
 import (
-	"github.com/blocktree/openwallet/log"
-	"github.com/blocktree/openwallet/openwallet"
+	"github.com/blocktree/openwallet/v2/log"
+	"github.com/blocktree/openwallet/v2/openwallet"
 	"testing"
 )
 
@@ -58,13 +58,13 @@ func TestBlockScanner_ExtractTransactionAndReceiptData(t *testing.T) {
 
 	addrs := map[string]openwallet.ScanTargetResult{
 		"0x3440f720862aa7dfd4f86ecc78542b3ded900c02": openwallet.ScanTargetResult{
-			SourceKey:  "receiver",
-			Exist:      true,
+			SourceKey: "receiver",
+			Exist:     true,
 		},
-		
+
 		"0xbff77bb15fec867b7db7b18a34fca6d20712ce2b": openwallet.ScanTargetResult{
-			SourceKey:  "GOOD",
-			Exist:      true,
+			SourceKey: "GOOD",
+			Exist:     true,
 			TargetInfo: &openwallet.SmartContract{
 				ContractID: "GOOD",
 				Symbol:     "QUORUM",
