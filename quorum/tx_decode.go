@@ -402,6 +402,8 @@ func (decoder *EthTransactionDecoder) SubmitRawTransaction(wrapper openwallet.Wa
 	txid, err := decoder.wm.SendRawTransaction(hexutil.Encode(rawTxPara))
 	if err != nil {
 		decoder.wm.Log.Std.Error("sent raw tx faild, err=%v", err)
+		//交易失败重置地址nonce
+		decoder.wm.UpdateAddressNonce(wrapper, from, 0)
 		return nil, openwallet.Errorf(openwallet.ErrSubmitRawTransactionFailed, "sent raw tx faild. unexpected error: %v", err)
 	}
 

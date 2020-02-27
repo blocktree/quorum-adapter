@@ -346,9 +346,9 @@ func (wm *WalletManager) EncodeABIParam(abiInstance abi.ABI, abiParam ...string)
 			}
 			a, err = common.StringValueToBigInt(abiArgs[i], base)
 		case abi.AddressTy:
-			a = ethcom.HexToAddress(abiArgs[i])
+			a = ethcom.HexToAddress(AppendOxToAddress(abiArgs[i]))
 		case abi.FixedBytesTy, abi.BytesTy, abi.HashTy:
-			slice, _ := hexutil.Decode(abiArgs[i])
+			slice, _ := hexutil.Decode(AppendOxToAddress(abiArgs[i]))
 			var fixBytes [32]byte
 			copy(fixBytes[:], slice)
 			a = fixBytes

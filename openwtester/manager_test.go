@@ -75,7 +75,7 @@ func TestWalletManager_CreateAssetsAccount(t *testing.T) {
 	tm := testInitWalletManager()
 
 	walletID := "WDMxQukjqS4SAP73Hx9kkPT4eVgTXDjC3r"
-	account := &openwallet.AssetsAccount{Alias: "quorum fee", WalletID: walletID, Required: 1, Symbol: "QUORUM", IsTrust: true}
+	account := &openwallet.AssetsAccount{Alias: "merchant", WalletID: walletID, Required: 1, Symbol: "QUORUM", IsTrust: true}
 	account, address, err := tm.CreateAssetsAccount(testApp, walletID, "12345678", account, nil)
 	if err != nil {
 		log.Error(err)

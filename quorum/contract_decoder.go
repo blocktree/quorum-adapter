@@ -360,6 +360,8 @@ func (decoder *EthContractDecoder) SubmitSmartContractRawTransaction(wrapper ope
 	txid, err := decoder.wm.SendRawTransaction(hexutil.Encode(rawTxPara))
 	if err != nil {
 		decoder.wm.Log.Std.Error("sent raw tx faild, err=%v", err)
+		//交易失败重置地址nonce
+		decoder.wm.UpdateAddressNonce(wrapper, from, 0)
 		return nil, openwallet.Errorf(openwallet.ErrSubmitRawSmartContractTransactionFailed, "sent raw tx faild. unexpected error: %v", err)
 	}
 
@@ -408,10 +410,13 @@ func (decoder *EthContractDecoder) VerifyRawTransaction(wrapper openwallet.Walle
 	pubkey := accountSig[0].Address.PublicKey
 	//curveType := rawTx.Signatures[rawTx.Account.AccountID][0].EccType
 
-	decoder.wm.Log.Debug("-- pubkey:", pubkey)
-	decoder.wm.Log.Debug("-- message:", msg)
-	decoder.wm.Log.Debug("-- Signature:", sig)
+	//decoder.wm.Log.Debug("-- pubkey:", pubkey)
+	//decoder.wm.Log.Debug("-- message:", msg)
+	//decoder.wm.Log.Debug("-- Signature:", sig)
 	signature := ethcom.FromHex(sig)
+	if signature == nil || len(signature) == 0 {
+		return openwallet.Errorf(openwallet.ErrVerifyRawTransactionFailed, "transaction signature is empty")
+	}
 	publickKey := owcrypt.PointDecompress(ethcom.FromHex(pubkey), owcrypt.ECC_CURVE_SECP256K1)
 	publickKey = publickKey[1:len(publickKey)]
 	ret := owcrypt.Verify(publickKey, nil, ethcom.FromHex(msg), signature[0:len(signature)-1], owcrypt.ECC_CURVE_SECP256K1)
