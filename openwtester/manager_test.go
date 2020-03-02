@@ -45,7 +45,7 @@ func TestWalletManager_GetWalletInfo(t *testing.T) {
 
 	tm := testInitWalletManager()
 
-	wallet, err := tm.GetWalletInfo(testApp, "WDMxQukjqS4SAP73Hx9kkPT4eVgTXDjC3r")
+	wallet, err := tm.GetWalletInfo(testApp, "W84oLnUb3P8vAGV73RtA3QHtXdLTTaG1Pk")
 	if err != nil {
 		log.Error("unexpected error:", err)
 		return
@@ -74,8 +74,8 @@ func TestWalletManager_CreateAssetsAccount(t *testing.T) {
 
 	tm := testInitWalletManager()
 
-	walletID := "WDMxQukjqS4SAP73Hx9kkPT4eVgTXDjC3r"
-	account := &openwallet.AssetsAccount{Alias: "merchant", WalletID: walletID, Required: 1, Symbol: "QUORUM", IsTrust: true}
+	walletID := "W84oLnUb3P8vAGV73RtA3QHtXdLTTaG1Pk"
+	account := &openwallet.AssetsAccount{Alias: "admin", WalletID: walletID, Required: 1, Symbol: "QUORUM", IsTrust: true}
 	account, address, err := tm.CreateAssetsAccount(testApp, walletID, "12345678", account, nil)
 	if err != nil {
 		log.Error(err)
@@ -92,7 +92,7 @@ func TestWalletManager_GetAssetsAccountList(t *testing.T) {
 
 	tm := testInitWalletManager()
 
-	walletID := "WDMxQukjqS4SAP73Hx9kkPT4eVgTXDjC3r"
+	walletID := "W84oLnUb3P8vAGV73RtA3QHtXdLTTaG1Pk"
 	list, err := tm.GetAssetsAccountList(testApp, walletID, 0, 10000000)
 	if err != nil {
 		log.Error("unexpected error:", err)
@@ -111,8 +111,8 @@ func TestWalletManager_CreateAddress(t *testing.T) {
 
 	tm := testInitWalletManager()
 
-	walletID := "WDMxQukjqS4SAP73Hx9kkPT4eVgTXDjC3r"
-	accountID := "EPByoz99UbLvLTdrnckHHDfF5NrRTNtfagBxRdStoKHL"
+	walletID := "W84oLnUb3P8vAGV73RtA3QHtXdLTTaG1Pk"
+	accountID := "DivhZayTBdcPMjWsduwxyyJ4PtZzUZ88MzYD3t6vqvfE"
 	address, err := tm.CreateAddress(testApp, walletID, accountID, 5)
 	if err != nil {
 		log.Error(err)
@@ -130,8 +130,8 @@ func TestWalletManager_GetAddressList(t *testing.T) {
 
 	tm := testInitWalletManager()
 
-	walletID := "WDMxQukjqS4SAP73Hx9kkPT4eVgTXDjC3r"
-	accountID := "EPByoz99UbLvLTdrnckHHDfF5NrRTNtfagBxRdStoKHL"
+	walletID := "W84oLnUb3P8vAGV73RtA3QHtXdLTTaG1Pk"
+	accountID := "DivhZayTBdcPMjWsduwxyyJ4PtZzUZ88MzYD3t6vqvfE"
 	list, err := tm.GetAddressList(testApp, walletID, accountID, 0, -1, false)
 	if err != nil {
 		log.Error("unexpected error:", err)

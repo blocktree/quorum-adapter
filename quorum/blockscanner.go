@@ -14,11 +14,6 @@
  */
 package quorum
 
-//block scan db内容:
-//1. 扫描过的blockheader
-//2. unscanned tx
-//3. block height, block hash
-
 import (
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -27,8 +22,6 @@ import (
 	"time"
 
 	"github.com/blocktree/openwallet/v2/openwallet"
-
-	//	"golang.org/x/text/currency"
 
 	"fmt"
 )
@@ -689,10 +682,17 @@ func (bs *BlockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTrans
 
 	}
 
+	// 检查to地址是否合约
+	flag, _ := bs.wm.IsContract(to)
+	scanType := openwallet.ScanTargetTypeAccountAddress
+	if flag {
+		scanType = openwallet.ScanTargetTypeContractAddress
+	}
+
 	targetResult2 := tx.FilterFunc(openwallet.ScanTargetParam{
 		ScanTarget:     to,
 		Symbol:         bs.wm.Symbol(),
-		ScanTargetType: openwallet.ScanTargetTypeAccountAddress})
+		ScanTargetType: uint64(scanType)})
 	if targetResult2.Exist {
 		output := &openwallet.TxOutPut{}
 		output.TxID = tx.Hash

@@ -15,7 +15,6 @@
 package quorum
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/blocktree/openwallet/v2/common"
@@ -115,7 +114,7 @@ func (wm *WalletManager) GetTransactionByHash(txid string) (*BlockTransaction, e
 	}
 	blockHeight, err := hexutil.DecodeUint64(tx.BlockNumber)
 	if err != nil {
-		return nil, err
+		blockHeight = 0
 	}
 	tx.BlockHeight = blockHeight
 	return &tx, nil
@@ -176,7 +175,7 @@ func (wm *WalletManager) ERC20GetAddressBalance(address string, contractAddr str
 	callMsg := CallMsg{
 		From: address,
 		To:   contractAddr,
-		Data: hex.EncodeToString(data),
+		Data: hexutil.Encode(data),
 	}
 
 	result, err := wm.EthCall(callMsg, "latest")
@@ -268,7 +267,7 @@ func (wm *WalletManager) GetGasEstimated(from string, to string, value *big.Int,
 		From: from,
 		To:   to,
 		//Value: value,
-		Data: hex.EncodeToString(data),
+		Data: hexutil.Encode(data),
 	}
 
 	result, err := wm.WalletClient.Call("eth_estimateGas", []interface{}{callMsg})

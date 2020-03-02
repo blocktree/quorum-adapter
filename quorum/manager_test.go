@@ -16,12 +16,12 @@
 package quorum
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/astaxie/beego/config"
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/blocktree/openwallet/v2/log"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"path/filepath"
@@ -427,7 +427,7 @@ func TestWalletManager_EthCall(t *testing.T) {
 	callMsg := CallMsg{
 		From: from,
 		To:   contractAddress,
-		Data: hex.EncodeToString(data),
+		Data: hexutil.Encode(data),
 	}
 
 	result, err := wm.EthCall(callMsg, "latest")

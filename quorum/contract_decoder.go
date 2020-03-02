@@ -15,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/shopspring/decimal"
 	"github.com/status-im/keycard-go/hexutils"
 	"math/big"
 	"strconv"
@@ -140,8 +139,7 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 		return nil, nil, openwallet.Errorf(openwallet.ErrContractCallMsgInvalid, "contract call msg invalid ")
 	}
 
-	value, _ := decimal.NewFromString(rawTx.Value)
-	value = value.Shift(decoder.wm.Decimal())
+	value := common.StringNumToBigIntWithExp(rawTx.Value, decoder.wm.Decimal())
 
 	abiInstance, err := abi.JSON(strings.NewReader(rawTx.Coin.Contract.GetABI()))
 	if err != nil {
@@ -178,8 +176,8 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 		callMsg = CallMsg{
 			From:  defAddress.Address,
 			To:    rawTx.Coin.Contract.Address,
-			Data:  hex.EncodeToString(data),
-			Value: value.String(),
+			Data:  hexutil.Encode(data),
+			Value: hexutil.EncodeBig(value),
 		}
 	}
 
@@ -243,7 +241,7 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 		return encErr
 	}
 
-	data, _ := hex.DecodeString(callMsg.Data)
+	data, _ := hex.DecodeString(removeOxFromHex(callMsg.Data))
 
 	//计算手续费
 	fee, createErr := decoder.wm.GetTransactionFeeEstimated(callMsg.From, callMsg.To, nil, data)
