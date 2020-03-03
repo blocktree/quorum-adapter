@@ -878,6 +878,7 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 	//查找合约对象信息
 	contract, ok := targetResult.TargetInfo.(*openwallet.SmartContract)
 	if !ok {
+		bs.wm.Log.Errorf("tx to target result can not convert to openwallet.SmartContract")
 		result.Success = false
 		return
 	}
@@ -1065,10 +1066,6 @@ func (bs *BlockScanner) GetGlobalMaxBlockHeight() uint64 {
 }
 
 func (bs *BlockScanner) SaveUnscannedTransaction(blockHeight uint64, reason string) error {
-	unscannedRecord := &openwallet.UnscanRecord{
-		BlockHeight: blockHeight,
-		Reason:      reason,
-		Symbol:      bs.wm.Symbol(),
-	}
+	unscannedRecord := openwallet.NewUnscanRecord(blockHeight, "", reason, bs.wm.Symbol())
 	return bs.SaveUnscanRecord(unscannedRecord)
 }
