@@ -140,8 +140,11 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 	}
 
 	value := common.StringNumToBigIntWithExp(rawTx.Value, decoder.wm.Decimal())
-
-	abiInstance, err := abi.JSON(strings.NewReader(rawTx.Coin.Contract.GetABI()))
+	abiJSON := rawTx.Coin.Contract.GetABI()
+	if len(abiJSON) == 0 {
+		return nil, nil, openwallet.Errorf(openwallet.ErrContractCallMsgInvalid, "abi json is empty")
+	}
+	abiInstance, err := abi.JSON(strings.NewReader(abiJSON))
 	if err != nil {
 		return nil, nil, openwallet.Errorf(openwallet.ErrContractCallMsgInvalid, err.Error())
 	}
