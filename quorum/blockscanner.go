@@ -688,11 +688,12 @@ func (bs *BlockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTrans
 	if flag {
 		scanType = openwallet.ScanTargetTypeContractAddress
 	}
-
 	targetResult2 := tx.FilterFunc(openwallet.ScanTargetParam{
 		ScanTarget:     to,
 		Symbol:         bs.wm.Symbol(),
 		ScanTargetType: uint64(scanType)})
+	bs.wm.Log.Infof("block scan to address scan type, result: %v", scanType)
+	bs.wm.Log.Infof("block scan to address transaction, result: %+v", targetResult2)
 	if targetResult2.Exist {
 		output := &openwallet.TxOutPut{}
 		output.TxID = tx.Hash
