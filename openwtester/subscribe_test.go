@@ -199,7 +199,7 @@ func TestSubscribeAddress_Contract(t *testing.T) {
 	}
 
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(9000)
+	scanner.SetRescanBlockHeight(9966)
 	scanner.Run()
 
 	<-endRunning
