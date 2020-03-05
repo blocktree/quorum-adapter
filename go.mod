@@ -10,7 +10,7 @@ require (
 	github.com/astaxie/beego v1.12.1
 	github.com/blocktree/go-owaddress v1.1.7
 	github.com/blocktree/go-owcrypt v1.1.2
-	github.com/blocktree/openwallet/v2 v2.0.1
+	github.com/blocktree/openwallet/v2 v2.0.2
 	github.com/ethereum/go-ethereum v1.9.9
 	github.com/imroc/req v0.3.0
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
