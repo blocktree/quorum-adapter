@@ -17,6 +17,7 @@ package quorum
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/blocktree/go-owcrypt"
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/blocktree/openwallet/v2/log"
 	"github.com/blocktree/openwallet/v2/openwallet"
@@ -349,7 +350,8 @@ func (wm *WalletManager) EncodeABIParam(abiInstance abi.ABI, abiParam ...string)
 		case abi.FixedBytesTy, abi.BytesTy, abi.HashTy:
 			slice, decodeErr := hexutil.Decode(AppendOxToAddress(abiArgs[i]))
 			if decodeErr != nil {
-				return nil, fmt.Errorf("abi input hex string can not convert byte, err: %v", decodeErr)
+				slice = owcrypt.Hash([]byte(abiArgs[i]), 0, owcrypt.HASH_ALG_KECCAK256)
+				//return nil, fmt.Errorf("abi input hex string can not convert byte, err: %v", decodeErr)
 			}
 			var fixBytes [32]byte
 			copy(fixBytes[:], slice)
