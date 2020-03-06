@@ -347,7 +347,10 @@ func (wm *WalletManager) EncodeABIParam(abiInstance abi.ABI, abiParam ...string)
 		case abi.AddressTy:
 			a = ethcom.HexToAddress(AppendOxToAddress(abiArgs[i]))
 		case abi.FixedBytesTy, abi.BytesTy, abi.HashTy:
-			slice, _ := hexutil.Decode(AppendOxToAddress(abiArgs[i]))
+			slice, decodeErr := hexutil.Decode(AppendOxToAddress(abiArgs[i]))
+			if decodeErr != nil {
+				return nil, fmt.Errorf("abi input hex string can not convert byte, err: %v", decodeErr)
+			}
 			var fixBytes [32]byte
 			copy(fixBytes[:], slice)
 			a = fixBytes

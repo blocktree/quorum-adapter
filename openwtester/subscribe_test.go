@@ -104,7 +104,7 @@ func TestBlockScanner_ExtractTransactionAndReceiptData(t *testing.T) {
 	var (
 		symbol = "QUORUM"
 		addrs  = make(map[string]openwallet.ScanTargetResult)
-		txid   = "0x7069e5edd1b7ef9f67c7349a17f52ad9fa42d1d19dd724392d8a585fac31feec"
+		txid   = "0xf7a0cf74a003dc7034032594c52355530efd21c22a13d3de1fc6651cb2269940"
 	)
 	//724f6bdc92705714b251fdfe205b952f71c1b25dac823eb448ff509b43ca2005
 	contract := &openwallet.SmartContract{
