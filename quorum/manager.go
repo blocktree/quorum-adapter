@@ -28,6 +28,8 @@ import (
 	ethcom "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"reflect"
+
 	//	"log"
 	"math/big"
 	"strings"
@@ -338,13 +340,7 @@ func (wm *WalletManager) EncodeABIParam(abiInstance abi.ABI, abiParam ...string)
 		case abi.BoolTy:
 			a = common.NewString(abiArgs[i]).Bool()
 		case abi.UintTy, abi.IntTy:
-			var base int
-			if strings.HasPrefix(abiArgs[i], "0x") {
-				base = 16
-			} else {
-				base = 10
-			}
-			a, err = common.StringValueToBigInt(abiArgs[i], base)
+			a, err = convertParamToNum(abiArgs[i], input.Type.Kind)
 		case abi.AddressTy:
 			a = ethcom.HexToAddress(AppendOxToAddress(abiArgs[i]))
 		case abi.FixedBytesTy, abi.BytesTy, abi.HashTy:
@@ -517,4 +513,48 @@ func removeOxFromHex(value string) string {
 		result = common.Substr(value, 2, len(value))
 	}
 	return result
+}
+
+func convertParamToNum(param string, kind reflect.Kind) (interface{}, error) {
+	var (
+		base int
+		bInt *big.Int
+		err error
+	)
+	if strings.HasPrefix(param, "0x") {
+		base = 16
+	} else {
+		base = 10
+	}
+	bInt, err = common.StringValueToBigInt(param, base)
+	if err != nil {
+		return nil, err
+	}
+
+	switch kind {
+	case reflect.Uint:
+		return uint(bInt.Uint64()), nil
+	case reflect.Uint8:
+		return uint8(bInt.Uint64()), nil
+	case reflect.Uint16:
+		return uint16(bInt.Uint64()), nil
+	case reflect.Uint32:
+		return uint32(bInt.Uint64()), nil
+	case reflect.Uint64:
+		return uint64(bInt.Uint64()), nil
+	case reflect.Int:
+		return int(bInt.Int64()), nil
+	case reflect.Int8:
+		return int8(bInt.Int64()), nil
+	case reflect.Int16:
+		return int16(bInt.Int64()), nil
+	case reflect.Int32:
+		return int32(bInt.Int64()), nil
+	case reflect.Int64:
+		return int64(bInt.Int64()), nil
+	case reflect.Ptr:
+		return bInt, nil
+	default:
+		return nil, fmt.Errorf("abi input arguments: %v is invaild integer type", param)
+	}
 }

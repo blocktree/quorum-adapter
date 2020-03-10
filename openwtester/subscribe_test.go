@@ -165,6 +165,7 @@ func TestBlockScanner_ExtractTransactionAndReceiptData(t *testing.T) {
 		log.Std.Notice("data.ContractTransaction: %+v", keyData)
 
 		for i, event := range keyData.Events {
+			log.Std.Notice("data.Contract[%d]: %+v", i, event.Contract)
 			log.Std.Notice("data.Events[%d]: %+v", i, event)
 		}
 	}
