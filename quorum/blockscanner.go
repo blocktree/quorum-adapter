@@ -332,7 +332,7 @@ func (bs *BlockScanner) BatchExtractTransaction(height uint64, txs []*BlockTrans
 	)
 
 	if len(txs) == 0 {
-		return fmt.Errorf("BatchExtractTransaction block is nil.")
+		return nil
 	}
 
 	//生产通道
@@ -381,6 +381,8 @@ func (bs *BlockScanner) BatchExtractTransaction(height uint64, txs []*BlockTrans
 			go func(mTx *BlockTransaction, end chan struct{}, mProducer chan<- ExtractResult) {
 				mTx.FilterFunc = bs.ScanTargetFuncV2
 				mTx.BlockHeight = height
+				mTx.From = bs.wm.CustomAddressEncodeFunc(tx.From)
+				mTx.To = bs.wm.CustomAddressEncodeFunc(tx.To)
 				//导出提出的交易
 				mProducer <- bs.ExtractTransaction(mTx)
 				//释放
@@ -503,13 +505,13 @@ func (bs *BlockScanner) GetBalanceByAddress(address ...string) ([]*openwallet.Ba
 			<-threadControl
 		}()
 
-		balanceConfirmed, err := bs.wm.GetAddrBalance(AppendOxToAddress(addr.Address), "latest")
+		balanceConfirmed, err := bs.wm.GetAddrBalance(addr.Address, "latest")
 		if err != nil {
 			bs.wm.Log.Error("get address[", addr.Address, "] balance failed, err=", err)
 			return
 		}
 
-		balanceAll, err := bs.wm.GetAddrBalance(AppendOxToAddress(addr.Address), "pending")
+		balanceAll, err := bs.wm.GetAddrBalance(addr.Address, "pending")
 		if err != nil {
 			balanceAll = balanceConfirmed
 		}
@@ -749,7 +751,7 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 	status := common.NewString(tx.Status).String()
 	reason := ""
 	txExtractMap := make(map[string]*openwallet.TxExtractData)
-
+	contractAddress = bs.wm.CustomAddressEncodeFunc(contractAddress)
 	contractId := openwallet.GenContractID(bs.wm.Symbol(), contractAddress)
 	coin := openwallet.Coin{
 		Symbol:     bs.wm.Symbol(),
@@ -821,7 +823,7 @@ func (bs *BlockScanner) extractERC20Detail(tx *BlockTransaction, contractAddress
 		} else {
 			address = te.TokenTo
 		}
-
+		address = bs.wm.CustomAddressEncodeFunc(address)
 		targetResult := tx.FilterFunc(openwallet.ScanTargetParam{
 			ScanTarget:     address,
 			Symbol:         bs.wm.Symbol(),

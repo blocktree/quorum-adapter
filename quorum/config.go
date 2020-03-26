@@ -43,6 +43,8 @@ type WalletConfig struct {
 	DataDir string
 	//固定gasLimit值
 	FixGasLimit *big.Int
+	//固定gasPrice值
+	FixGasPrice *big.Int
 }
 
 func NewConfig(symbol string) *WalletConfig {

@@ -66,7 +66,9 @@ func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	fixGasLimit := c.String("fixGasLimit")
 	wm.Config.FixGasLimit = new(big.Int)
 	wm.Config.FixGasLimit.SetString(fixGasLimit, 10)
-
+	fixGasPrice := c.String("fixGasPrice")
+	wm.Config.FixGasPrice = new(big.Int)
+	wm.Config.FixGasPrice.SetString(fixGasPrice, 10)
 	//数据文件夹
 	wm.Config.makeDataDir()
 

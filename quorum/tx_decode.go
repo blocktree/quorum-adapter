@@ -224,7 +224,7 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenRawTransaction(wrapper ope
 			continue
 		}
 
-		data, createErr := decoder.wm.EncodeABIParam(ERC20_ABI, "transfer", to, amount.String())
+		data, createErr := decoder.wm.EncodeABIParam(ERC20_ABI, "transfer", decoder.wm.CustomAddressDecodeFunc(to), amount.String())
 		if createErr != nil {
 			continue
 		}
@@ -242,7 +242,7 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenRawTransaction(wrapper ope
 			fee.CalcFee()
 		}
 
-		coinBalance, err := decoder.wm.GetAddrBalance(AppendOxToAddress(addrBalance.Balance.Address), "pending")
+		coinBalance, err := decoder.wm.GetAddrBalance(addrBalance.Balance.Address, "pending")
 		if err != nil {
 			continue
 		}
@@ -721,7 +721,7 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrap
 		sumAmount := common.BigIntToDecimals(sumAmount_BI, tokenDecimals)
 		fees := common.BigIntToDecimals(fee.Fee, decoder.wm.Decimal())
 
-		coinBalance, createErr := decoder.wm.GetAddrBalance(AppendOxToAddress(addrBalance.Balance.Address), "pending")
+		coinBalance, createErr := decoder.wm.GetAddrBalance(addrBalance.Balance.Address, "pending")
 		if err != nil {
 			continue
 		}
@@ -855,8 +855,8 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 		accountTotalSent = accountTotalSent.Add(amountDec)
 	}
 
-	txFrom = []string{fmt.Sprintf("%s:%s", AppendOxToAddress(addrBalance.Address), amountStr)}
-	txTo = []string{fmt.Sprintf("%s:%s", AppendOxToAddress(destination), amountStr)}
+	txFrom = []string{fmt.Sprintf("%s:%s", addrBalance.Address, amountStr)}
+	txTo = []string{fmt.Sprintf("%s:%s", destination, amountStr)}
 
 	gasprice := common.BigIntToDecimals(fee.GasPrice, decoder.wm.Decimal())
 	totalFeeDecimal := common.BigIntToDecimals(fee.Fee, decoder.wm.Decimal())
@@ -905,7 +905,7 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 			//return openwallet.Errorf("the [%s] balance: %s is not enough to call smart contract", rawTx.Coin.Symbol, coinBalance)
 		}
 
-		tx = types.NewTransaction(nonce, ethcom.HexToAddress(rawTx.Coin.Contract.Address),
+		tx = types.NewTransaction(nonce, ethcom.HexToAddress(decoder.wm.CustomAddressDecodeFunc(rawTx.Coin.Contract.Address)),
 			big.NewInt(0), gasLimit, fee.GasPrice, ethcom.FromHex(callData))
 	} else {
 		//构建QUORUM交易
@@ -918,7 +918,7 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 			//return openwallet.Errorf("the [%s] balance: %s is not enough", rawTx.Coin.Symbol, amountStr)
 		}
 
-		tx = types.NewTransaction(nonce, ethcom.HexToAddress(destination),
+		tx = types.NewTransaction(nonce, ethcom.HexToAddress(decoder.wm.CustomAddressDecodeFunc(destination)),
 			amount, gasLimit, fee.GasPrice, []byte(""))
 	}
 

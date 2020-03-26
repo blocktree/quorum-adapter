@@ -259,7 +259,7 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 	}
 
 	//检查调用地址是否有足够手续费
-	coinBalance, err := decoder.wm.GetAddrBalance(AppendOxToAddress(callMsg.From), "pending")
+	coinBalance, err := decoder.wm.GetAddrBalance(callMsg.From, "pending")
 	if err != nil {
 		return openwallet.Errorf(openwallet.ErrCreateRawSmartContractTransactionFailed, createErr.Error())
 	}
@@ -282,7 +282,7 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 	gasLimit := fee.GasLimit.Uint64()
 
 	//构建合约交易
-	tx := types.NewTransaction(nonce, ethcom.HexToAddress(callMsg.To),
+	tx := types.NewTransaction(nonce, ethcom.HexToAddress(decoder.wm.CustomAddressDecodeFunc(callMsg.To)),
 		common.StringNumToBigIntWithExp(callMsg.Value, 0), gasLimit, fee.GasPrice, data)
 
 	rawHex, err := rlp.EncodeToBytes(tx)

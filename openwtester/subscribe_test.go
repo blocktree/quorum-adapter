@@ -73,17 +73,14 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		symbol     = "QUORUM"
 		//accountID  = "HgRBsaiKgoVDagwezos496vqKQCh41pY44JbhW65YA8t"
 		addrs = map[string]string{
-			"0x3440f720862aa7dfd4f86ecc78542b3ded900c02": "receiver",
+			"0x19a4b5d6ea319a5d5ad1d4cc00a5e2e28cac5ec3": "sender",
+			"0x1c63c5c3f5a18cef5e2996a7c41fe933c7e9cffa": "receiver",
 		}
 	)
 
-	//GetSourceKeyByAddress 获取地址对应的数据源标识
-	scanAddressFunc := func(address string) (string, bool) {
-		key, ok := addrs[address]
-		if !ok {
-			return "", false
-		}
-		return key, true
+	scanTargetFunc := func(target openwallet.ScanTargetParam) openwallet.ScanTargetResult {
+		sourceKey, ok := addrs[target.ScanTarget]
+		return openwallet.ScanTargetResult{SourceKey: sourceKey, Exist: ok, TargetInfo: nil,}
 	}
 
 	scanner := testBlockScanner(symbol)
@@ -92,8 +89,8 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		log.Error(symbol, "is not support block scan")
 		return
 	}
-	scanner.SetBlockScanAddressFunc(scanAddressFunc)
-
+	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
+	scanner.SetRescanBlockHeight(25249)
 	scanner.Run()
 
 	<-endRunning
@@ -200,7 +197,7 @@ func TestSubscribeAddress_Contract(t *testing.T) {
 	}
 
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(9966)
+	scanner.SetRescanBlockHeight(25249)
 	scanner.Run()
 
 	<-endRunning

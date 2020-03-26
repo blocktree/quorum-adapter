@@ -38,13 +38,15 @@ import (
 type WalletManager struct {
 	openwallet.AssetsAdapterBase
 
-	WalletClient    *quorum_rpc.Client              // 节点客户端
-	Config          *WalletConfig                   //钱包管理配置
-	Blockscanner    openwallet.BlockScanner         //区块扫描器
-	Decoder         openwallet.AddressDecoderV2     //地址编码器
-	TxDecoder       openwallet.TransactionDecoder   //交易单编码器
-	ContractDecoder openwallet.SmartContractDecoder //智能合约解释器
-	Log             *log.OWLogger                   //日志工具
+	WalletClient            *quorum_rpc.Client              // 节点客户端
+	Config                  *WalletConfig                   //钱包管理配置
+	Blockscanner            openwallet.BlockScanner         //区块扫描器
+	Decoder                 openwallet.AddressDecoderV2     //地址编码器
+	TxDecoder               openwallet.TransactionDecoder   //交易单编码器
+	ContractDecoder         openwallet.SmartContractDecoder //智能合约解释器
+	Log                     *log.OWLogger                   //日志工具
+	CustomAddressEncodeFunc func(address string) string     //自定义地址转换算法
+	CustomAddressDecodeFunc func(address string) string     //自定义地址转换算法
 }
 
 func NewWalletManager() *WalletManager {
@@ -55,11 +57,14 @@ func NewWalletManager() *WalletManager {
 	wm.TxDecoder = NewTransactionDecoder(&wm)
 	wm.ContractDecoder = &EthContractDecoder{wm: &wm}
 	wm.Log = log.NewOWLogger(wm.Symbol())
+	wm.CustomAddressEncodeFunc = CustomAddressEncode
+	wm.CustomAddressDecodeFunc = CustomAddressDecode
 
 	return &wm
 }
 
 func (wm *WalletManager) GetTransactionCount(addr string) (uint64, error) {
+	addr = wm.CustomAddressDecodeFunc(addr)
 	params := []interface{}{
 		AppendOxToAddress(addr),
 		"latest",
@@ -120,6 +125,8 @@ func (wm *WalletManager) GetTransactionByHash(txid string) (*BlockTransaction, e
 		blockHeight = 0
 	}
 	tx.BlockHeight = blockHeight
+	tx.From = wm.CustomAddressEncodeFunc(tx.From)
+	tx.To = wm.CustomAddressEncodeFunc(tx.To)
 	return &tx, nil
 }
 
@@ -165,6 +172,8 @@ func (wm *WalletManager) RecoverUnscannedTransactions(unscannedTxs []*openwallet
 // ERC20GetAddressBalance
 func (wm *WalletManager) ERC20GetAddressBalance(address string, contractAddr string) (*big.Int, error) {
 
+	address = wm.CustomAddressDecodeFunc(address)
+	contractAddr = wm.CustomAddressDecodeFunc(contractAddr)
 	address = AppendOxToAddress(address)
 	contractAddr = AppendOxToAddress(contractAddr)
 
@@ -200,7 +209,7 @@ func (wm *WalletManager) ERC20GetAddressBalance(address string, contractAddr str
 
 // GetAddrBalance
 func (wm *WalletManager) GetAddrBalance(address string, sign string) (*big.Int, error) {
-
+	address = wm.CustomAddressDecodeFunc(address)
 	params := []interface{}{
 		AppendOxToAddress(address),
 		sign,
@@ -231,6 +240,7 @@ func (wm *WalletManager) GetTransactionFeeEstimated(from string, to string, valu
 
 	var (
 		gasLimit *big.Int
+		gasPrice *big.Int
 		err      error
 	)
 	if wm.Config.FixGasLimit.Cmp(big.NewInt(0)) > 0 {
@@ -245,9 +255,16 @@ func (wm *WalletManager) GetTransactionFeeEstimated(from string, to string, valu
 		}
 	}
 
-	gasPrice, err := wm.GetGasPrice()
-	if err != nil {
-		return nil, err
+	if wm.Config.FixGasPrice.Cmp(big.NewInt(0)) > 0 {
+		//配置设置固定gasLimit
+		gasPrice = wm.Config.FixGasPrice
+	} else {
+		//动态计算gasPrice
+
+		gasPrice, err = wm.GetGasPrice()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	//	fee := new(big.Int)
@@ -266,11 +283,10 @@ func (wm *WalletManager) GetTransactionFeeEstimated(from string, to string, valu
 // GetGasEstimated
 func (wm *WalletManager) GetGasEstimated(from string, to string, value *big.Int, data []byte) (*big.Int, error) {
 	//toAddr := ethcom.HexToAddress(to)
-	callMsg := CallMsg{
-		From: from,
-		To:   to,
-		//Value: value,
-		Data: hexutil.Encode(data),
+	callMsg := map[string]interface{}{
+		"from": wm.CustomAddressDecodeFunc(from),
+		"to":   wm.CustomAddressDecodeFunc(to),
+		"data": hexutil.Encode(data),
 	}
 
 	result, err := wm.WalletClient.Call("eth_estimateGas", []interface{}{callMsg})
@@ -309,7 +325,7 @@ func (wm *WalletManager) SetNetworkChainID() (uint64, error) {
 		return 0, err
 	}
 	wm.Config.ChainID = id
-	wm.Log.Debugf("Network chainID: %d", wm.Config.ChainID)
+	//wm.Log.Debugf("Network chainID: %d", wm.Config.ChainID)
 	return id, nil
 }
 
@@ -414,7 +430,13 @@ func (wm *WalletManager) DecodeReceiptLogResult(abiInstance abi.ABI, log types.L
 }
 
 func (wm *WalletManager) EthCall(callMsg CallMsg, sign string) (string, error) {
-	result, err := wm.WalletClient.Call("eth_call", []interface{}{callMsg, sign})
+	param := map[string]interface{}{
+		"from":  wm.CustomAddressDecodeFunc(callMsg.From),
+		"to":    wm.CustomAddressDecodeFunc(callMsg.To),
+		"value": callMsg.Value,
+		"data":  callMsg.Data,
+	}
+	result, err := wm.WalletClient.Call("eth_call", []interface{}{param, sign})
 	if err != nil {
 		return "", err
 	}
@@ -438,7 +460,7 @@ func (wm *WalletManager) SendRawTransaction(signedTx string) (string, error) {
 // IsContract 是否合约
 func (wm *WalletManager) IsContract(address string) (bool, error) {
 	params := []interface{}{
-		address,
+		wm.CustomAddressDecodeFunc(address),
 		"latest",
 	}
 
@@ -519,7 +541,7 @@ func convertParamToNum(param string, kind reflect.Kind) (interface{}, error) {
 	var (
 		base int
 		bInt *big.Int
-		err error
+		err  error
 	)
 	if strings.HasPrefix(param, "0x") {
 		base = 16
@@ -557,4 +579,11 @@ func convertParamToNum(param string, kind reflect.Kind) (interface{}, error) {
 	default:
 		return nil, fmt.Errorf("abi input arguments: %v is invaild integer type", param)
 	}
+}
+
+func CustomAddressEncode(address string) string {
+	return address
+}
+func CustomAddressDecode(address string) string {
+	return address
 }
