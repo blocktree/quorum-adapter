@@ -381,8 +381,8 @@ func (bs *BlockScanner) BatchExtractTransaction(height uint64, txs []*BlockTrans
 			go func(mTx *BlockTransaction, end chan struct{}, mProducer chan<- ExtractResult) {
 				mTx.FilterFunc = bs.ScanTargetFuncV2
 				mTx.BlockHeight = height
-				mTx.From = bs.wm.CustomAddressEncodeFunc(tx.From)
-				mTx.To = bs.wm.CustomAddressEncodeFunc(tx.To)
+				mTx.From = bs.wm.CustomAddressEncodeFunc(mTx.From)
+				mTx.To = bs.wm.CustomAddressEncodeFunc(mTx.To)
 				//导出提出的交易
 				mProducer <- bs.ExtractTransaction(mTx)
 				//释放
