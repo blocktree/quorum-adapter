@@ -73,7 +73,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		symbol     = "QUORUM"
 		//accountID  = "HgRBsaiKgoVDagwezos496vqKQCh41pY44JbhW65YA8t"
 		addrs = map[string]string{
-			"0x19a4b5d6ea319a5d5ad1d4cc00a5e2e28cac5ec3": "sender",
+			"0x76b932e7ef077eabebe8a5064b99120ec81299ca": "sender",
 			"0x1c63c5c3f5a18cef5e2996a7c41fe933c7e9cffa": "receiver",
 		}
 	)
@@ -90,7 +90,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(25249)
+	scanner.SetRescanBlockHeight(25470)
 	scanner.Run()
 
 	<-endRunning
@@ -101,7 +101,7 @@ func TestBlockScanner_ExtractTransactionAndReceiptData(t *testing.T) {
 	var (
 		symbol = "QUORUM"
 		addrs  = make(map[string]openwallet.ScanTargetResult)
-		txid   = "0xf7a0cf74a003dc7034032594c52355530efd21c22a13d3de1fc6651cb2269940"
+		txid   = "0xec91c186a8fd035aef71d432b33123043d4485cd4083f215baa47d74dbaf3554"
 	)
 	//724f6bdc92705714b251fdfe205b952f71c1b25dac823eb448ff509b43ca2005
 	contract := &openwallet.SmartContract{

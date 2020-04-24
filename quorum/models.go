@@ -96,6 +96,12 @@ func (receipt *TransactionReceipt) ParseTransferEvent() map[string][]*TransferEv
 
 	bc := bind.NewBoundContract(ethcom.HexToAddress("0x0"), ERC20_ABI, nil, nil, nil)
 	for _, log := range receipt.ETHReceipt.Logs {
+
+		event, _ := ERC20_ABI.EventByID(log.Topics[0])
+		if event == nil || event.Name != "Transfer" {
+			continue
+		}
+
 		var transfer TransferEvent
 		err = bc.UnpackLog(&transfer, "Transfer", *log)
 		if err != nil {

@@ -24,14 +24,14 @@ func TestWalletManager_GetTokenBalanceByAddress(t *testing.T) {
 	wm := testNewWalletManager()
 
 	contract := openwallet.SmartContract{
-		Address:  "0x946E8AdB42A04a72e17FE0e87C93fa01ff4E4f57",
+		Address:  "0x550cdb1020046b3115a4f8ccebddfb28b66beb27",
 		Symbol:   "QUORUM",
-		Name:     "FUQI",
-		Token:    "FUQI",
+		Name:     "FQ",
+		Token:    "FQ",
 		Decimals: 2,
 	}
 
-	tokenBalances, err := wm.ContractDecoder.GetTokenBalanceByAddress(contract, "0xea6451977a5cc5c17fb8b2f745cfd51708d694d5")
+	tokenBalances, err := wm.ContractDecoder.GetTokenBalanceByAddress(contract, "0x76b932e7ef077eabebe8a5064b99120ec81299ca")
 	if err != nil {
 		t.Errorf("GetTokenBalanceByAddress unexpected error: %v", err)
 		return
