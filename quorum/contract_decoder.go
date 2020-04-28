@@ -249,7 +249,7 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 	//计算手续费
 	fee, createErr := decoder.wm.GetTransactionFeeEstimated(callMsg.From, callMsg.To, nil, data)
 	if createErr != nil {
-		decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", callMsg.From, callMsg.To, createErr)
+		//decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", callMsg.From, callMsg.To, createErr)
 		return openwallet.Errorf(openwallet.ErrCreateRawSmartContractTransactionFailed, createErr.Error())
 	}
 

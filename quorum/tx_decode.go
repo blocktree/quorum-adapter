@@ -113,7 +113,7 @@ func (decoder *EthTransactionDecoder) CreateSimpleRawTransaction(wrapper openwal
 		//计算手续费
 		feeInfo, err = decoder.wm.GetTransactionFeeEstimated(addrBalance.Address, to, amount, nil)
 		if err != nil {
-			decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Address, to, err)
+			//decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Address, to, err)
 			continue
 		}
 
@@ -233,7 +233,7 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenRawTransaction(wrapper ope
 		//计算手续费
 		fee, createErr := decoder.wm.GetTransactionFeeEstimated(addrBalance.Balance.Address, contractAddress, nil, data)
 		if createErr != nil {
-			decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Balance.Address, to, createErr)
+			//decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Balance.Address, to, createErr)
 			return createErr
 		}
 
@@ -559,7 +559,7 @@ func (decoder *EthTransactionDecoder) CreateSimpleSummaryRawTransaction(wrapper 
 		//计算手续费
 		fee, createErr := decoder.wm.GetTransactionFeeEstimated(addrBalance.Address, sumRawTx.SummaryAddress, sumAmount_BI, nil)
 		if createErr != nil {
-			decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Address, sumRawTx.SummaryAddress, createErr)
+			//decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Address, sumRawTx.SummaryAddress, createErr)
 			return nil, createErr
 		}
 
@@ -705,7 +705,7 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrap
 		//计算手续费
 		fee, createErr := decoder.wm.GetTransactionFeeEstimated(addrBalance.Balance.Address, contractAddress, nil, callData)
 		if createErr != nil {
-			decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Balance.Address, sumRawTx.SummaryAddress, createErr)
+			//decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", addrBalance.Balance.Address, sumRawTx.SummaryAddress, createErr)
 			return nil, createErr
 		}
 
