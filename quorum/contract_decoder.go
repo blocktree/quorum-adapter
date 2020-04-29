@@ -384,16 +384,19 @@ func (decoder *EthContractDecoder) SubmitSmartContractRawTransaction(wrapper ope
 
 	owtx.GenWxID()
 
+	decoder.wm.Log.Infof("rawTx.AwaitResult = %v", rawTx.AwaitResult)
 	//等待出块结果返回交易回执
 	if rawTx.AwaitResult {
-		bs := decoder.wm.Blockscanner
+		bs := decoder.wm.GetBlockScanner()
 		if bs == nil {
+			decoder.wm.Log.Errorf("adapter blockscanner is nil")
 			return owtx, nil
 		}
 
 		addrs := make(map[string]openwallet.ScanTargetResult)
 		contract := &rawTx.Coin.Contract
 		if contract == nil {
+			decoder.wm.Log.Errorf("rawTx.Coin.Contract is nil")
 			return owtx, nil
 		}
 
