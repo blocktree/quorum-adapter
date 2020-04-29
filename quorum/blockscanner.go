@@ -991,8 +991,8 @@ func (bs *BlockScanner) ExtractTransactionAndReceiptData(txid string, scanTarget
 	//result := bs.ExtractTransaction(0, "", txid, scanAddressFunc)
 	tx, err := bs.wm.GetTransactionByHash(txid)
 	if err != nil {
-		bs.wm.Log.Errorf("get transaction by has failed, err=%v", err)
-		return nil, nil, fmt.Errorf("get transaction by has failed, err=%v", err)
+		bs.wm.Log.Errorf("get transaction by has failed, err: %v", err)
+		return nil, nil, err
 	}
 	tx.FilterFunc = scanTargetFunc
 	result := bs.ExtractTransaction(tx)

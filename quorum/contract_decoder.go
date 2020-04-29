@@ -19,6 +19,7 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type EthContractDecoder struct {
@@ -372,7 +373,6 @@ func (decoder *EthContractDecoder) SubmitSmartContractRawTransaction(wrapper ope
 	rawTx.TxID = txid
 	rawTx.IsSubmit = true
 
-	//记录一个交易单
 	owtx := &openwallet.SmartContractReceipt{
 		Coin:  rawTx.Coin,
 		TxID:  rawTx.TxID,
@@ -383,6 +383,73 @@ func (decoder *EthContractDecoder) SubmitSmartContractRawTransaction(wrapper ope
 	}
 
 	owtx.GenWxID()
+
+	//等待出块结果返回交易回执
+	if rawTx.AwaitResult {
+		bs := decoder.wm.Blockscanner
+		if bs == nil {
+			return owtx, nil
+		}
+
+		addrs := make(map[string]openwallet.ScanTargetResult)
+		contract := &rawTx.Coin.Contract
+		if contract == nil {
+			return owtx, nil
+		}
+
+		addrs[contract.Address] = openwallet.ScanTargetResult{SourceKey: contract.ContractID, Exist: true, TargetInfo: contract}
+
+		scanTargetFunc := func(target openwallet.ScanTargetParam) openwallet.ScanTargetResult {
+			result := addrs[target.ScanTarget]
+			if result.Exist {
+				return result
+			}
+			return openwallet.ScanTargetResult{SourceKey: "", Exist: false, TargetInfo: nil}
+		}
+
+		//默认超时90秒
+		if rawTx.AwaitTimeout == 0 {
+			rawTx.AwaitTimeout = 90
+		}
+
+		sleepSecond := 2 * time.Second
+
+		//计算过期时间
+		currentServerTime := time.Now()
+		expiredTime := currentServerTime.Add(time.Duration(rawTx.AwaitTimeout) * time.Second)
+
+		//等待交易单报块结果
+		for {
+
+			//当前重试时间
+			currentReDoTime := time.Now()
+
+			//decoder.wm.Log.Debugf("currentReDoTime = %s", currentReDoTime.String())
+			//decoder.wm.Log.Debugf("expiredTime = %s", expiredTime.String())
+
+			//超时终止
+			if currentReDoTime.Unix() >= expiredTime.Unix() {
+				break
+			}
+
+			_, contractResult, extractErr := bs.ExtractTransactionAndReceiptData(owtx.TxID, scanTargetFunc)
+			if extractErr != nil {
+				decoder.wm.Log.Errorf("ExtractTransactionAndReceiptData failed, err: %v", extractErr)
+				return owtx, nil
+			}
+
+			//tx := txResult[contract.ContractID]
+			receipt := contractResult[contract.ContractID]
+
+			if receipt != nil {
+				return receipt, nil
+			}
+
+			//等待sleepSecond秒重试
+			time.Sleep(sleepSecond)
+		}
+
+	}
 
 	return owtx, nil
 }
