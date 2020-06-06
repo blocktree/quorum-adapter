@@ -72,8 +72,13 @@ func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	//数据文件夹
 	wm.Config.makeDataDir()
 
-	//设置网络chainID
-	wm.SetNetworkChainID()
+	chainID, err := c.Int64("chainID")
+	if err != nil {
+		//设置网络chainID
+		wm.SetNetworkChainID()
+	} else {
+		wm.Config.ChainID = uint64(chainID)
+	}
 
 	return nil
 
