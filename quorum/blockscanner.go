@@ -915,6 +915,11 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 			return
 		}
 
+		//没有纪录ABI，不处理提取
+		if len(logContract.GetABI()) == 0 {
+			continue
+		}
+
 		abiInstance, logErr := abi.JSON(strings.NewReader(logContract.GetABI()))
 		if logErr != nil {
 			bs.wm.Log.Errorf("abi decode json failed, err: %v", logErr)
