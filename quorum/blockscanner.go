@@ -685,11 +685,11 @@ func (bs *BlockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTrans
 	}
 
 	// 检查to地址是否合约
-	flag, _ := bs.wm.IsContract(to)
+	//flag, _ := bs.wm.IsContract(to)
 	scanType := openwallet.ScanTargetTypeAccountAddress
-	if flag {
-		scanType = openwallet.ScanTargetTypeContractAddress
-	}
+	//if flag {
+	//	scanType = openwallet.ScanTargetTypeContractAddress
+	//}
 	targetResult2 := tx.FilterFunc(openwallet.ScanTargetParam{
 		ScanTarget:     to,
 		Symbol:         bs.wm.Symbol(),
@@ -883,6 +883,11 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 	if !ok {
 		bs.wm.Log.Errorf("tx to target result can not convert to openwallet.SmartContract")
 		result.Success = false
+		return
+	}
+
+	//没有纪录ABI，不处理提取
+	if len(contract.GetABI()) == 0 {
 		return
 	}
 
