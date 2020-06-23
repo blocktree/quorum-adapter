@@ -647,10 +647,11 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrap
 			return nil, openwallet.Errorf(openwallet.ErrAccountNotAddress, "fees support account have not addresses")
 		}
 
-		nonce, feesSupportErr := decoder.wm.GetTransactionCount(feesAddresses[0].Address)
-		if feesSupportErr != nil {
-			return nil, openwallet.NewError(openwallet.ErrNonceInvaild, "fees support account get nonce failed")
-		}
+		nonce := decoder.wm.GetAddressNonce(wrapper, feesAddresses[0].Address)
+		//nonce, feesSupportErr := decoder.wm.GetTransactionCount(feesAddresses[0].Address)
+		//if feesSupportErr != nil {
+		//	return nil, openwallet.NewError(openwallet.ErrNonceInvaild, "fees support account get nonce failed")
+		//}
 		tmpNonce = nonce
 	}
 	//tokenCoin := sumRawTx.Coin.Contract.Token
