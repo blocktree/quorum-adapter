@@ -45,6 +45,8 @@ type WalletConfig struct {
 	FixGasLimit *big.Int
 	//固定gasPrice值
 	FixGasPrice *big.Int
+	//补偿gasPrice值
+	OffsetsGasPrice *big.Int
 }
 
 func NewConfig(symbol string) *WalletConfig {

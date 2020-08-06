@@ -62,8 +62,8 @@ func TestSmartContractTransaction(t *testing.T) {
 	log.Infof("orderNum: %s", orderNum) //724f6bdc92705714b251fdfe205b952f71c1b25dac823eb448ff509b43ca2005
 	callParam := []string{
 		"transfer",
-		"0xe6a9cc4fe66e7b726e3e8ef8e32c308ce74c0996",
-		"112",
+		"0xfc30915918ff75d3afe10bd50afa56a952a1981e",
+		"1120000",
 	}
 
 	rawTx, err := tm.CreateSmartContractTransaction(testApp, walletID, accountID, "", "", &contract, callParam)

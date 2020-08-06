@@ -260,11 +260,11 @@ func (wm *WalletManager) GetTransactionFeeEstimated(from string, to string, valu
 		gasPrice = wm.Config.FixGasPrice
 	} else {
 		//动态计算gasPrice
-
 		gasPrice, err = wm.GetGasPrice()
 		if err != nil {
 			return nil, err
 		}
+		gasPrice.Add(gasPrice, wm.Config.OffsetsGasPrice)
 	}
 
 	//	fee := new(big.Int)
