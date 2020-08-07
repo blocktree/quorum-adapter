@@ -40,7 +40,7 @@ func testGetAssetsAccountTokenBalance(tm *openw.WalletManager, walletID, account
 	log.Info("token balance:", balance.Balance)
 }
 
-func testCreateTransactionStep(tm *openw.WalletManager, walletID, accountID, to, amount, feeRate string, contract *openwallet.SmartContract) (*openwallet.RawTransaction, error) {
+func testCreateTransactionStep(tm *openw.WalletManager, walletID, accountID, to, amount, feeRate string, contract *openwallet.SmartContract, extParam map[string]interface{}) (*openwallet.RawTransaction, error) {
 
 	//err := tm.RefreshAssetsAccountBalance(testApp, accountID)
 	//if err != nil {
@@ -48,7 +48,7 @@ func testCreateTransactionStep(tm *openw.WalletManager, walletID, accountID, to,
 	//	return nil, err
 	//}
 
-	rawTx, err := tm.CreateTransaction(testApp, walletID, accountID, amount, to, feeRate, "", contract)
+	rawTx, err := tm.CreateTransaction(testApp, walletID, accountID, amount, to, feeRate, "", contract, extParam)
 
 	if err != nil {
 		log.Error("CreateTransaction failed, unexpected error:", err)
@@ -120,7 +120,7 @@ func testSubmitTransactionStep(tm *openw.WalletManager, rawTx *openwallet.RawTra
 func TestTransfer_QUORUM(t *testing.T) {
 
 	addrs := []string{
-		//"0x2f0b01cf4f5d2430423d4fba412bfb6347ae8cac",
+		"0x2f0b01cf4f5d2430423d4fba412bfb6347ae8cac",
 		//"0x3880f535ea2e5ea837d4f72250ede40627ccdca0",
 		//"0x48740446f5637995b3b542832ba8a511caeafaa4",
 		//"0x9fad88195e6ee7f8c39e9e4ed4deb70a21836ada",
@@ -128,7 +128,7 @@ func TestTransfer_QUORUM(t *testing.T) {
 		//"0xf1dd51bdb6234b8d9154bb73f55ac9683166a733",
 		//"0xf41fbb39d2d57de11b065dffe4d9c5fb535e25ed",
 
-		"0x0220655ae9f32a291d00e7cf1cecc9f2b7964f00",
+		//"0x0220655ae9f32a291d00e7cf1cecc9f2b7964f00",
 	}
 
 	tm := testInitWalletManager()
@@ -138,7 +138,7 @@ func TestTransfer_QUORUM(t *testing.T) {
 	testGetAssetsAccountBalance(tm, walletID, accountID)
 
 	for _, to := range addrs {
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "1", "", nil)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "1", "", nil, nil)
 		if err != nil {
 			return
 		}
@@ -192,7 +192,7 @@ func TestTransfer_ERC20(t *testing.T) {
 	testGetAssetsAccountTokenBalance(tm, walletID, accountID, contract)
 
 	for _, to := range addrs {
-		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "12.34", "", &contract)
+		rawTx, err := testCreateTransactionStep(tm, walletID, accountID, to, "12.34", "", &contract, nil)
 		if err != nil {
 			return
 		}

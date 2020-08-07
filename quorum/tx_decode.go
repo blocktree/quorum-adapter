@@ -880,9 +880,14 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 
 	var nonce uint64
 	if tmpNonce == nil {
-		txNonce := decoder.wm.GetAddressNonce(wrapper, addrBalance.Address)
-		//decoder.wm.Log.Debugf("txNonce: %d", txNonce)
-		nonce = txNonce
+		//使用外部传入的扩展字段填充nonce
+		if rawTx.GetExtParam().Exists() {
+			nonce = rawTx.GetExtParam().Get("nonce").Uint()
+		} else {
+			txNonce := decoder.wm.GetAddressNonce(wrapper, addrBalance.Address)
+			//decoder.wm.Log.Debugf("txNonce: %d", txNonce)
+			nonce = txNonce
+		}
 	} else {
 		nonce = *tmpNonce
 	}
