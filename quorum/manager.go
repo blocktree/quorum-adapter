@@ -487,14 +487,17 @@ func (wm *WalletManager) GetAddressNonce(wrapper openwallet.WalletDAI, address s
 		err           error
 	)
 
-	//获取db记录的nonce并确认nonce值
-	nonce_db, _ = wrapper.GetAddressExtParam(address, key)
+	//NonceComputeMode = 0时，使用外部系统的自增值
+	if wm.Config.NonceComputeMode == 0 {
+		//获取db记录的nonce并确认nonce值
+		nonce_db, _ = wrapper.GetAddressExtParam(address, key)
 
-	//判断nonce_db是否为空,为空则说明当前nonce是0
-	if nonce_db == nil {
-		nonce = 0
-	} else {
-		nonce = common.NewString(nonce_db).UInt64()
+		//判断nonce_db是否为空,为空则说明当前nonce是0
+		if nonce_db == nil {
+			nonce = 0
+		} else {
+			nonce = common.NewString(nonce_db).UInt64()
+		}
 	}
 
 	nonce_onchain, err = wm.GetTransactionCount(address)
@@ -509,6 +512,8 @@ func (wm *WalletManager) GetAddressNonce(wrapper openwallet.WalletDAI, address s
 		nonce = nonce_onchain
 		//wm.Log.Debugf("%s nonce_db=%v <= nonce_chain=%v,Use nonce_chain...", address, nonce_db, nonce_onchain)
 	}
+
+	//wm.Log.Debugf("nonce: %v", nonce)
 
 	return nonce
 }

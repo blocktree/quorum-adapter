@@ -72,6 +72,7 @@ func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	offsetsGasPrice := c.String("offsetsGasPrice")
 	wm.Config.OffsetsGasPrice = new(big.Int)
 	wm.Config.OffsetsGasPrice.SetString(offsetsGasPrice, 10)
+	wm.Config.NonceComputeMode, _ = c.Int64("nonceComputeMode")
 
 	//数据文件夹
 	wm.Config.makeDataDir()

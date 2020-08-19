@@ -47,6 +47,8 @@ type WalletConfig struct {
 	FixGasPrice *big.Int
 	//补偿gasPrice值
 	OffsetsGasPrice *big.Int
+	//nonce计算方式, 0: auto-increment nonce, 1: latest nonce
+	NonceComputeMode int64
 }
 
 func NewConfig(symbol string) *WalletConfig {
