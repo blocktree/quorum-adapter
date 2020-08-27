@@ -28,6 +28,7 @@ import (
 	ethcom "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"reflect"
 
 	//	"log"
@@ -38,6 +39,7 @@ import (
 type WalletManager struct {
 	openwallet.AssetsAdapterBase
 
+	RawClient               *ethclient.Client               //原生ETH客户端
 	WalletClient            *quorum_rpc.Client              // 节点客户端
 	Config                  *WalletConfig                   //钱包管理配置
 	Blockscanner            openwallet.BlockScanner         //区块扫描器

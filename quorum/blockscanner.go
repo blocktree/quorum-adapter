@@ -17,6 +17,8 @@ package quorum
 import (
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
+	ethcom "github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
 	"time"
@@ -747,20 +749,36 @@ func (bs *BlockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTrans
 //extractERC20Transaction
 func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAddress string, tokenEvent []*TransferEvent) map[string]*openwallet.TxExtractData {
 
+	var (
+		tokenName     string
+		tokenSymbol   string
+		tokenDecimals uint8
+	)
+
 	nowUnix := time.Now().Unix()
 	status := common.NewString(tx.Status).String()
 	reason := ""
 	txExtractMap := make(map[string]*openwallet.TxExtractData)
 	contractAddress = bs.wm.CustomAddressEncodeFunc(contractAddress)
 	contractId := openwallet.GenContractID(bs.wm.Symbol(), contractAddress)
+
+	bc := bind.NewBoundContract(ethcom.HexToAddress(contractAddress), ERC20_ABI, bs.wm.RawClient, bs.wm.RawClient, nil)
+	bc.Call(&bind.CallOpts{}, &tokenName, "name")
+	bc.Call(&bind.CallOpts{}, &tokenSymbol, "symbol")
+	bc.Call(&bind.CallOpts{}, &tokenDecimals, "decimals")
+
 	coin := openwallet.Coin{
 		Symbol:     bs.wm.Symbol(),
 		IsContract: true,
 		ContractID: contractId,
 		Contract: openwallet.SmartContract{
 			ContractID: contractId,
-			Address:    contractAddress,
 			Symbol:     bs.wm.Symbol(),
+			Address:    contractAddress,
+			Token:      tokenSymbol,
+			Protocol:   "erc20",
+			Name:       tokenName,
+			Decimals:   uint64(tokenDecimals),
 		},
 	}
 

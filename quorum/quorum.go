@@ -19,6 +19,7 @@ import (
 	"github.com/blocktree/openwallet/v2/log"
 	"github.com/blocktree/openwallet/v2/openwallet"
 	"github.com/blocktree/quorum-adapter/quorum_rpc"
+	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
 )
 
@@ -83,6 +84,11 @@ func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 		wm.SetNetworkChainID()
 	} else {
 		wm.Config.ChainID = uint64(chainID)
+	}
+
+	wm.RawClient, err = ethclient.Dial(wm.Config.ServerAPI)
+	if err != nil {
+		return err
 	}
 
 	return nil

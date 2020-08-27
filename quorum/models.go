@@ -81,6 +81,9 @@ type TransactionReceipt struct {
 
 type TransferEvent struct {
 	ContractAddress string
+	TokenName       string
+	TokenSymbol     string
+	TokenDecimals   uint8
 	TokenFrom       string
 	TokenTo         string
 	From            ethcom.Address
@@ -106,12 +109,14 @@ func (receipt *TransactionReceipt) ParseTransferEvent() map[string][]*TransferEv
 			continue
 		}
 
+		address := strings.ToLower(log.Address.String())
+
 		var transfer TransferEvent
 		err = bc.UnpackLog(&transfer, "Transfer", *log)
 		if err != nil {
 			continue
 		}
-		address := strings.ToLower(log.Address.String())
+
 		events := transferEvents[address]
 		if events == nil {
 			events = make([]*TransferEvent, 0)
@@ -119,6 +124,7 @@ func (receipt *TransactionReceipt) ParseTransferEvent() map[string][]*TransferEv
 		transfer.ContractAddress = address
 		transfer.TokenFrom = strings.ToLower(transfer.From.String())
 		transfer.TokenTo = strings.ToLower(transfer.To.String())
+
 		events = append(events, &transfer)
 		transferEvents[address] = events
 	}
