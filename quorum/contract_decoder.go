@@ -15,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/rlp"
-	"github.com/status-im/keycard-go/hexutils"
 	"math/big"
 	"strconv"
 	"strings"
@@ -141,21 +140,14 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 	}
 
 	value := common.StringNumToBigIntWithExp(rawTx.Value, decoder.wm.Decimal())
-	abiJSON := rawTx.Coin.Contract.GetABI()
-	if len(abiJSON) == 0 {
-		return nil, nil, openwallet.Errorf(openwallet.ErrContractCallMsgInvalid, "abi json is empty")
-	}
-	abiInstance, err := abi.JSON(strings.NewReader(abiJSON))
-	if err != nil {
-		return nil, nil, openwallet.Errorf(openwallet.ErrContractCallMsgInvalid, err.Error())
-	}
+
 
 	if len(rawTx.Raw) > 0 {
 		var decErr error
 		//直接的数据请求
 		switch rawTx.RawType {
 		case openwallet.TxRawTypeHex:
-			rawBytes := hexutils.HexToBytes(rawTx.Raw)
+			rawBytes := hexutil.MustDecode(AppendOxToAddress(rawTx.Raw))
 			decErr = rlp.DecodeBytes(rawBytes, &callMsg)
 		case openwallet.TxRawTypeJSON:
 			decErr = json.Unmarshal([]byte(rawTx.Raw), callMsg)
@@ -166,8 +158,17 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 		if decErr != nil {
 			return nil, nil, openwallet.Errorf(openwallet.ErrContractCallMsgInvalid, decErr.Error())
 		}
-	} else {
 
+		return &callMsg, nil, nil
+	} else {
+		abiJSON := rawTx.Coin.Contract.GetABI()
+		if len(abiJSON) == 0 {
+			return nil, nil, openwallet.Errorf(openwallet.ErrContractCallMsgInvalid, "abi json is empty")
+		}
+		abiInstance, err := abi.JSON(strings.NewReader(abiJSON))
+		if err != nil {
+			return nil, nil, openwallet.Errorf(openwallet.ErrContractCallMsgInvalid, err.Error())
+		}
 		data, encErr := decoder.wm.EncodeABIParam(abiInstance, rawTx.ABIParam...)
 		if encErr != nil {
 			return nil, nil, openwallet.Errorf(openwallet.ErrContractCallMsgInvalid, encErr.Error())
@@ -183,9 +184,9 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 			Data:  hexutil.Encode(data),
 			Value: hexutil.EncodeBig(value),
 		}
-	}
 
-	return &callMsg, &abiInstance, nil
+		return &callMsg, &abiInstance, nil
+	}
 }
 
 func (decoder *EthContractDecoder) GetAssetsAccountDefAddress(wrapper openwallet.WalletDAI, accountID string) (*openwallet.Address, *openwallet.Error) {
@@ -333,7 +334,7 @@ func (decoder *EthContractDecoder) SubmitSmartContractRawTransaction(wrapper ope
 	//解析原始交易单
 	switch rawTx.RawType {
 	case openwallet.TxRawTypeHex:
-		rawBytes := hexutils.HexToBytes(rawTx.Raw)
+		rawBytes := hexutil.MustDecode(AppendOxToAddress(rawTx.Raw))
 		decodeErr = rlp.DecodeBytes(rawBytes, tx)
 	case openwallet.TxRawTypeJSON:
 		decodeErr = tx.UnmarshalJSON([]byte(rawTx.Raw))
