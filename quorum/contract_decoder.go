@@ -184,7 +184,7 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 			Data:  hexutil.Encode(data),
 			Value: hexutil.EncodeBig(value),
 		}
-
+		log.Infof("call data: %s", hex.EncodeToString(data))
 		return &callMsg, &abiInstance, nil
 	}
 }
@@ -248,8 +248,9 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 
 	data, _ := hex.DecodeString(removeOxFromHex(callMsg.Data))
 
+	amount := common.StringNumToBigIntWithExp(rawTx.Value, decoder.wm.Decimal())
 	//计算手续费
-	fee, createErr := decoder.wm.GetTransactionFeeEstimated(callMsg.From, callMsg.To, nil, data)
+	fee, createErr := decoder.wm.GetTransactionFeeEstimated(callMsg.From, callMsg.To, amount, data)
 	if createErr != nil {
 		//decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", callMsg.From, callMsg.To, createErr)
 		return openwallet.Errorf(openwallet.ErrCreateRawSmartContractTransactionFailed, createErr.Error())
@@ -285,7 +286,7 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 
 	//构建合约交易
 	tx := types.NewTransaction(nonce, ethcom.HexToAddress(decoder.wm.CustomAddressDecodeFunc(callMsg.To)),
-		common.StringNumToBigIntWithExp(callMsg.Value, 0), gasLimit, fee.GasPrice, data)
+		amount, gasLimit, fee.GasPrice, data)
 
 	rawHex, err := rlp.EncodeToBytes(tx)
 	if err != nil {

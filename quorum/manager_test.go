@@ -16,6 +16,7 @@
 package quorum
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/astaxie/beego/config"
 	"github.com/blocktree/openwallet/v2/common"
@@ -79,6 +80,30 @@ func TestWalletManager_SetNetworkChainID(t *testing.T) {
 		return
 	}
 	log.Infof("chainID: %d", id)
+}
+
+func TestWalletManager_EncodeABIParam(t *testing.T) {
+	wm := testNewWalletManager()
+	abiJSON := `[{"inputs":[{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMin","type":"uint256"},{"internalType":"address[]","name":"path","type":"address[]"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"name":"swapExactTokensForTokens","outputs":[{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"stateMutability":"nonpayable","type":"function"}]`
+	method := "swapExactTokensForTokens"
+	amountIn := "10000"
+	amountOutMin := "20040885242236945"
+	path := "dac17f958d2ee523a2206206994597c13d831ec7,c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2,e3ec0395086da2dbd74c7f637b8fbb1d5d729f40"
+	to := "666a655bce333517797da2e4442f141d66b888"
+	deadline := "1598431552"
+
+	abiInstance, err := abi.JSON(strings.NewReader(abiJSON))
+	if err != nil {
+		t.Errorf("abi.JSON error: %v", err)
+		return
+	}
+
+	data, err := wm.EncodeABIParam(abiInstance, method, amountIn, amountOutMin, path, to, deadline)
+	if err != nil {
+		t.Errorf("EncodeABIParam error: %v", err)
+		return
+	}
+	log.Infof("data: %s", hex.EncodeToString(data))
 }
 
 func TestWalletManager_EthCall(t *testing.T) {

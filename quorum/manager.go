@@ -291,6 +291,10 @@ func (wm *WalletManager) GetGasEstimated(from string, to string, value *big.Int,
 		"data": hexutil.Encode(data),
 	}
 
+	if value != nil {
+		callMsg["value"] = hexutil.EncodeBig(value)
+	}
+
 	result, err := wm.WalletClient.Call("eth_estimateGas", []interface{}{callMsg})
 	if err != nil {
 		return big.NewInt(0), err
@@ -335,7 +339,6 @@ func (wm *WalletManager) SetNetworkChainID() (uint64, error) {
 func (wm *WalletManager) EncodeABIParam(abiInstance abi.ABI, abiParam ...string) ([]byte, error) {
 
 	var (
-		err  error
 		args = make([]interface{}, 0)
 	)
 
@@ -353,26 +356,8 @@ func (wm *WalletManager) EncodeABIParam(abiInstance abi.ABI, abiParam ...string)
 		return nil, fmt.Errorf("abi input arguments is: %d, except is : %d", len(abiArgs), len(abiMethod.Inputs))
 	}
 	for i, input := range abiMethod.Inputs {
-		var a interface{}
-		switch input.Type.T {
-		case abi.BoolTy:
-			a = common.NewString(abiArgs[i]).Bool()
-		case abi.UintTy, abi.IntTy:
-			a, err = convertParamToNum(abiArgs[i], input.Type.Kind)
-		case abi.AddressTy:
-			a = ethcom.HexToAddress(AppendOxToAddress(abiArgs[i]))
-		case abi.FixedBytesTy, abi.BytesTy, abi.HashTy:
-			slice, decodeErr := hexutil.Decode(AppendOxToAddress(abiArgs[i]))
-			if decodeErr != nil {
-				slice = owcrypt.Hash([]byte(abiArgs[i]), 0, owcrypt.HASH_ALG_KECCAK256)
-				//return nil, fmt.Errorf("abi input hex string can not convert byte, err: %v", decodeErr)
-			}
-			var fixBytes [32]byte
-			copy(fixBytes[:], slice)
-			a = fixBytes
-		case abi.StringTy:
-			a = abiArgs[i]
-		}
+		//var a interface{}
+		a, err := convertStringParamToABIParam(input.Type, abiArgs[i])
 		if err != nil {
 			return nil, err
 		}
@@ -544,7 +529,123 @@ func removeOxFromHex(value string) string {
 	return result
 }
 
-func convertParamToNum(param string, kind reflect.Kind) (interface{}, error) {
+// convertStringParamToABIParam string参数转为ABI参数
+func convertStringParamToABIParam(inputType abi.Type, abiArg string) (interface{}, error){
+	var (
+		err  error
+		a interface{}
+	)
+
+	switch inputType.T {
+	case abi.BoolTy:
+		a = common.NewString(abiArg).Bool()
+	case abi.UintTy, abi.IntTy:
+		a, err = convertParamToNum(abiArg, inputType)
+	case abi.AddressTy:
+		a = ethcom.HexToAddress(AppendOxToAddress(abiArg))
+	case abi.FixedBytesTy, abi.BytesTy, abi.HashTy:
+		slice, decodeErr := hexutil.Decode(AppendOxToAddress(abiArg))
+		if decodeErr != nil {
+			slice = owcrypt.Hash([]byte(abiArg), 0, owcrypt.HASH_ALG_KECCAK256)
+			//return nil, fmt.Errorf("abi input hex string can not convert byte, err: %v", decodeErr)
+		}
+		var fixBytes [32]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case abi.StringTy:
+		a = abiArg
+	case abi.ArrayTy, abi.SliceTy:
+		subArgs := strings.Split(abiArg, ",")
+		a, err = convertArrayParamToABIParam(*inputType.Elem, subArgs)
+	}
+	if err != nil {
+		return nil, err
+	}
+	return a, nil
+}
+
+//convertArrayParamToABIParam 数组参数转化
+func convertArrayParamToABIParam(inputType abi.Type, subArgs []string) (interface{}, error){
+	var (
+		err  error
+		a interface{}
+	)
+
+	switch inputType.T {
+	case abi.BoolTy:
+		arr := make([]bool, 0)
+		for _, subArg := range subArgs {
+			elem, subErr := convertStringParamToABIParam(inputType, subArg)
+			if subErr != nil {
+				err = subErr
+				break
+			}
+			arr = append(arr, elem.(bool))
+		}
+		a = arr
+	case abi.UintTy:
+		arr := make([]uint, 0)
+		for _, subArg := range subArgs {
+			elem, subErr := convertStringParamToABIParam(inputType, subArg)
+			if subErr != nil {
+				err = subErr
+				break
+			}
+			arr = append(arr, elem.(uint))
+		}
+		a = arr
+	case abi.IntTy:
+		arr := make([]int, 0)
+		for _, subArg := range subArgs {
+			elem, subErr := convertStringParamToABIParam(inputType, subArg)
+			if subErr != nil {
+				err = subErr
+				break
+			}
+			arr = append(arr, elem.(int))
+		}
+		a = arr
+	case abi.AddressTy:
+		arr := make([]ethcom.Address, 0)
+		for _, subArg := range subArgs {
+			elem, subErr := convertStringParamToABIParam(inputType, subArg)
+			if subErr != nil {
+				err = subErr
+				break
+			}
+			arr = append(arr, elem.(ethcom.Address))
+		}
+		a = arr
+	case abi.FixedBytesTy, abi.BytesTy, abi.HashTy:
+		arr := make([][32]byte, 0)
+		for _, subArg := range subArgs {
+			elem, subErr := convertStringParamToABIParam(inputType, subArg)
+			if subErr != nil {
+				err = subErr
+				break
+			}
+			arr = append(arr, elem.([32]byte))
+		}
+		a = arr
+	case abi.StringTy:
+		arr := make([]string, 0)
+		for _, subArg := range subArgs {
+			elem, subErr := convertStringParamToABIParam(inputType, subArg)
+			if subErr != nil {
+				err = subErr
+				break
+			}
+			arr = append(arr, elem.(string))
+		}
+		a = arr
+	}
+	if err != nil {
+		return nil, err
+	}
+	return a, nil
+}
+
+func convertParamToNum(param string, abiType abi.Type) (interface{}, error) {
 	var (
 		base int
 		bInt *big.Int
@@ -560,7 +661,7 @@ func convertParamToNum(param string, kind reflect.Kind) (interface{}, error) {
 		return nil, err
 	}
 
-	switch kind {
+	switch abiType.Kind {
 	case reflect.Uint:
 		return uint(bInt.Uint64()), nil
 	case reflect.Uint8:
