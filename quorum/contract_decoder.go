@@ -150,7 +150,7 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 			rawBytes := hexutil.MustDecode(AppendOxToAddress(rawTx.Raw))
 			decErr = rlp.DecodeBytes(rawBytes, &callMsg)
 		case openwallet.TxRawTypeJSON:
-			decErr = json.Unmarshal([]byte(rawTx.Raw), callMsg)
+			decErr = json.Unmarshal([]byte(rawTx.Raw), &callMsg)
 		case openwallet.TxRawTypeBase64:
 			rawBytes, _ := base64.StdEncoding.DecodeString(rawTx.Raw)
 			decErr = rlp.DecodeBytes(rawBytes, &callMsg)
@@ -248,7 +248,11 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 
 	data, _ := hex.DecodeString(removeOxFromHex(callMsg.Data))
 
-	amount := common.StringNumToBigIntWithExp(rawTx.Value, decoder.wm.Decimal())
+	//amount := common.StringNumToBigIntWithExp(rawTx.Value, decoder.wm.Decimal())
+	amount, err := hexutil.DecodeBig(callMsg.Value)
+	if err != nil {
+		amount = nil
+	}
 	//计算手续费
 	fee, createErr := decoder.wm.GetTransactionFeeEstimated(callMsg.From, callMsg.To, amount, data)
 	if createErr != nil {
