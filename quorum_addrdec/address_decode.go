@@ -2,7 +2,6 @@ package quorum_addrdec
 
 import (
 	"encoding/hex"
-	"github.com/blocktree/go-owaddress"
 	"github.com/blocktree/go-owcrypt"
 	"github.com/blocktree/openwallet/v2/openwallet"
 	"strings"
@@ -51,9 +50,22 @@ func (dec *AddressDecoderV2) AddressEncode(hash []byte, opts ...interface{}) (st
 
 // AddressVerify 地址校验
 func (dec *AddressDecoderV2) AddressVerify(address string, opts ...interface{}) bool {
-	valid, err := owaddress.Verify("eth", address)
+	if address == "" {
+		return false
+	}
+
+	if strings.Index(address, "0x") != 0 {
+		return false
+	}
+
+	_, err := hex.DecodeString(address[2:])
 	if err != nil {
 		return false
 	}
-	return valid
+
+	if len(address[2:]) != 20 {
+		return false
+	}
+
+	return true
 }
