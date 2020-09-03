@@ -58,12 +58,12 @@ func (dec *AddressDecoderV2) AddressVerify(address string, opts ...interface{}) 
 		return false
 	}
 
-	_, err := hex.DecodeString(address[2:])
+	addrByte, err := hex.DecodeString(address[2:])
 	if err != nil {
 		return false
 	}
 
-	if len(address[2:]) != 20 {
+	if len(addrByte) != 20 {
 		return false
 	}
 

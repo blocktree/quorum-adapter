@@ -211,8 +211,13 @@ func (decoder *EthContractDecoder) CallSmartContractABI(wrapper openwallet.Walle
 		return nil, encErr
 	}
 
+	methodName := ""
+	if len(rawTx.ABIParam) > 0 {
+		methodName = rawTx.ABIParam[0]
+	}
+
 	callResult := &openwallet.SmartContractCallResult{
-		Method: rawTx.ABIParam[0],
+		Method: methodName,
 	}
 
 	result, err := decoder.wm.EthCall(*callMsg, "latest")
@@ -222,13 +227,15 @@ func (decoder *EthContractDecoder) CallSmartContractABI(wrapper openwallet.Walle
 		return callResult, openwallet.ConvertError(err)
 	}
 
-	_, rJSON, err := decoder.wm.DecodeABIResult(*abiInstance, callResult.Method, result)
-	if err != nil {
-		return nil, openwallet.ConvertError(err)
+	if abiInstance != nil {
+		_, rJSON, err := decoder.wm.DecodeABIResult(*abiInstance, callResult.Method, result)
+		if err != nil {
+			return nil, openwallet.ConvertError(err)
+		}
+		callResult.Value = rJSON
 	}
 
 	callResult.RawHex = result
-	callResult.Value = rJSON
 	callResult.Status = openwallet.SmartContractCallResultStatusSuccess
 
 	return callResult, nil
