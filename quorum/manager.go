@@ -187,9 +187,10 @@ func (wm *WalletManager) ERC20GetAddressBalance(address string, contractAddr str
 
 	//toAddr := ethcom.HexToAddress(contractAddr)
 	callMsg := CallMsg{
-		From: address,
-		To:   contractAddr,
-		Data: hexutil.Encode(data),
+		From: ethcom.HexToAddress(address),
+		To:   ethcom.HexToAddress(contractAddr),
+		Data: data,
+		Amount: big.NewInt(0),
 	}
 
 	result, err := wm.EthCall(callMsg, "latest")
@@ -418,10 +419,10 @@ func (wm *WalletManager) DecodeReceiptLogResult(abiInstance abi.ABI, log types.L
 
 func (wm *WalletManager) EthCall(callMsg CallMsg, sign string) (string, error) {
 	param := map[string]interface{}{
-		"from":  wm.CustomAddressDecodeFunc(callMsg.From),
-		"to":    wm.CustomAddressDecodeFunc(callMsg.To),
-		"value": callMsg.Value,
-		"data":  callMsg.Data,
+		"from":  callMsg.From.String(),
+		"to":    callMsg.To.String(),
+		"value": hexutil.EncodeBig(callMsg.Amount),
+		"data":  hexutil.Encode(callMsg.Data),
 	}
 	result, err := wm.WalletClient.Call("eth_call", []interface{}{param, sign})
 	if err != nil {

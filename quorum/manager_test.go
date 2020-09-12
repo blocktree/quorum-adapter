@@ -22,7 +22,7 @@ import (
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/blocktree/openwallet/v2/log"
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethcom "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"path/filepath"
@@ -127,9 +127,9 @@ func TestWalletManager_EthCall(t *testing.T) {
 	}
 
 	callMsg := CallMsg{
-		From: from,
-		To:   contractAddress,
-		Data: hexutil.Encode(data),
+		From: ethcom.HexToAddress(from),
+		To:   ethcom.HexToAddress(contractAddress),
+		Data: data,
 	}
 
 	result, err := wm.EthCall(callMsg, "latest")

@@ -179,10 +179,10 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 		}
 		//toAddr := ethcom.HexToAddress(rawTx.Coin.Contract.Address)
 		callMsg = CallMsg{
-			From:  defAddress.Address,
-			To:    rawTx.Coin.Contract.Address,
-			Data:  hexutil.Encode(data),
-			Value: hexutil.EncodeBig(value),
+			From:  ethcom.HexToAddress(decoder.wm.CustomAddressDecodeFunc(defAddress.Address)),
+			To:    ethcom.HexToAddress(decoder.wm.CustomAddressDecodeFunc(rawTx.Coin.Contract.Address)),
+			Data:  data,
+			Amount: value,
 		}
 		log.Infof("call data: %s", hex.EncodeToString(data))
 		return &callMsg, &abiInstance, nil
@@ -246,6 +246,8 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 
 	var (
 		keySignList = make([]*openwallet.KeySignature, 0)
+		fee *txFeeInfo
+		feeErr error
 	)
 
 	callMsg, _, encErr := decoder.EncodeRawTransactionCallMsg(wrapper, rawTx)
@@ -253,29 +255,40 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 		return encErr
 	}
 
-	data, _ := hex.DecodeString(removeOxFromHex(callMsg.Data))
+	data := callMsg.Data
 
 	//amount := common.StringNumToBigIntWithExp(rawTx.Value, decoder.wm.Decimal())
-	amount, err := hexutil.DecodeBig(callMsg.Value)
-	if err != nil {
-		amount = nil
-	}
-	//计算手续费
-	fee, createErr := decoder.wm.GetTransactionFeeEstimated(callMsg.From, callMsg.To, amount, data)
-	if createErr != nil {
-		//decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", callMsg.From, callMsg.To, createErr)
-		return openwallet.Errorf(openwallet.ErrCreateRawSmartContractTransactionFailed, createErr.Error())
-	}
+	amount := callMsg.Amount
 
-	if rawTx.FeeRate != "" {
-		fee.GasPrice = common.StringNumToBigIntWithExp(rawTx.FeeRate, decoder.wm.Decimal()) //ConvertToBigInt(rawTx.FeeRate, 16)
+	if callMsg.GasPrice != nil && callMsg.GasPrice.Cmp(big.NewInt(0)) > 0 && callMsg.Gas > 0 {
+		bigGas := new(big.Int)
+		bigGas.SetUint64(callMsg.Gas)
+		fee = &txFeeInfo{
+			GasLimit: bigGas,
+			GasPrice: callMsg.GasPrice,
+		}
 		fee.CalcFee()
+	} else {
+		//计算手续费
+		fee, feeErr = decoder.wm.GetTransactionFeeEstimated(
+			strings.ToLower(callMsg.From.String()),
+			strings.ToLower(callMsg.To.String()),
+			amount, data)
+		if feeErr != nil {
+			//decoder.wm.Log.Std.Error("GetTransactionFeeEstimated from[%v] -> to[%v] failed, err=%v", callMsg.From, callMsg.To, createErr)
+			return openwallet.Errorf(openwallet.ErrCreateRawSmartContractTransactionFailed, feeErr.Error())
+		}
+
+		if rawTx.FeeRate != "" {
+			fee.GasPrice = common.StringNumToBigIntWithExp(rawTx.FeeRate, decoder.wm.Decimal()) //ConvertToBigInt(rawTx.FeeRate, 16)
+			fee.CalcFee()
+		}
 	}
 
 	//检查调用地址是否有足够手续费
-	coinBalance, err := decoder.wm.GetAddrBalance(callMsg.From, "pending")
+	coinBalance, err := decoder.wm.GetAddrBalance(strings.ToLower(callMsg.From.String()), "pending")
 	if err != nil {
-		return openwallet.Errorf(openwallet.ErrCreateRawSmartContractTransactionFailed, createErr.Error())
+		return openwallet.Errorf(openwallet.ErrCreateRawSmartContractTransactionFailed, err.Error())
 	}
 
 	if coinBalance.Cmp(fee.Fee) < 0 {
@@ -286,17 +299,17 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 	gasprice := common.BigIntToDecimals(fee.GasPrice, decoder.wm.Decimal())
 	totalFeeDecimal := common.BigIntToDecimals(fee.Fee, decoder.wm.Decimal())
 
-	addr, err := wrapper.GetAddress(callMsg.From)
+	addr, err := wrapper.GetAddress(strings.ToLower(callMsg.From.String()))
 	if err != nil {
 		return openwallet.NewError(openwallet.ErrAccountNotAddress, err.Error())
 	}
 
-	nonce := decoder.wm.GetAddressNonce(wrapper, callMsg.From)
+	nonce := decoder.wm.GetAddressNonce(wrapper, strings.ToLower(callMsg.From.String()))
 	signer := types.NewEIP155Signer(big.NewInt(int64(decoder.wm.Config.ChainID)))
 	gasLimit := fee.GasLimit.Uint64()
 
 	//构建合约交易
-	tx := types.NewTransaction(nonce, ethcom.HexToAddress(decoder.wm.CustomAddressDecodeFunc(callMsg.To)),
+	tx := types.NewTransaction(nonce, callMsg.To,
 		amount, gasLimit, fee.GasPrice, data)
 
 	rawHex, err := rlp.EncodeToBytes(tx)
@@ -325,8 +338,8 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 	rawTx.Signatures[rawTx.Account.AccountID] = keySignList
 	rawTx.FeeRate = gasprice.String()
 	rawTx.Fees = totalFeeDecimal.String()
-	rawTx.TxFrom = callMsg.From
-	rawTx.TxTo = callMsg.To
+	rawTx.TxFrom = strings.ToLower(callMsg.From.String())
+	rawTx.TxTo = strings.ToLower(callMsg.To.String())
 	rawTx.IsBuilt = true
 
 	return nil

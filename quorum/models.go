@@ -23,6 +23,7 @@ import (
 	ethcom "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
+	"github.com/tidwall/gjson"
 	"math/big"
 	"reflect"
 	"strings"
@@ -221,11 +222,58 @@ func (txFee *txFeeInfo) CalcFee() error {
 	return nil
 }
 
+//type CallMsg struct {
+//	From     string `json:"from"`
+//	To       string `json:"to"`
+//	Data     string `json:"data"`
+//	Value    string `json:"value"`
+//	gas      string `json:"gas"`
+//	gasPrice string `json:"gasPrice"`
+//}
+
 type CallMsg struct {
-	From  string `json:"from"`
-	To    string `json:"to"`
-	Data  string `json:"data"`
-	Value string `json:"value"`
+	To       ethcom.Address `json:"to"`
+	From     ethcom.Address `json:"from"`
+	Nonce    uint64         `json:"nonce"`
+	Amount   *big.Int       `json:"amount"`
+	GasLimit uint64         `json:"gasLimit"`
+	Gas      uint64         `json:"gas"`
+	GasPrice *big.Int       `json:"gasPrice"`
+	Data     []byte         `json:"data"`
+}
+
+func (msg *CallMsg) UnmarshalJSON(data []byte) error {
+	obj := gjson.ParseBytes(data)
+	msg.From = ethcom.HexToAddress(obj.Get("from").String())
+	msg.To = ethcom.HexToAddress(obj.Get("to").String())
+	msg.Nonce, _ = hexutil.DecodeUint64(obj.Get("nonce").String())
+	msg.Amount, _ = hexutil.DecodeBig(obj.Get("amount").String())
+	msg.GasLimit, _ = hexutil.DecodeUint64(obj.Get("gasLimit").String())
+	msg.Gas, _ = hexutil.DecodeUint64(obj.Get("gas").String())
+	msg.GasPrice, _ = hexutil.DecodeBig(obj.Get("gasPrice").String())
+	msg.Data, _ = hexutil.Decode(obj.Get("data").String())
+	return nil
+}
+
+func (msg *CallMsg) MarshalJSON() ([]byte, error) {
+	obj := map[string]interface{}{
+		"from":     msg.From.String(),
+		"to":       msg.To.String(),
+		"nonce":    hexutil.EncodeUint64(msg.Nonce),
+		"gasLimit": hexutil.EncodeUint64(msg.Nonce),
+		"gas":      hexutil.EncodeUint64(msg.Nonce),
+	}
+
+	if msg.Amount != nil {
+		obj["amount"] = hexutil.EncodeBig(msg.Amount)
+	}
+	if msg.GasPrice != nil {
+		obj["gasPrice"] = hexutil.EncodeBig(msg.GasPrice)
+	}
+	if msg.Data != nil {
+		obj["data"] = hexutil.Encode(msg.Data)
+	}
+	return json.Marshal(obj)
 }
 
 type CallResult map[string]interface{}
