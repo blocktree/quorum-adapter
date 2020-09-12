@@ -235,7 +235,7 @@ type CallMsg struct {
 	To       ethcom.Address `json:"to"`
 	From     ethcom.Address `json:"from"`
 	Nonce    uint64         `json:"nonce"`
-	Amount   *big.Int       `json:"amount"`
+	Value    *big.Int       `json:"value"`
 	GasLimit uint64         `json:"gasLimit"`
 	Gas      uint64         `json:"gas"`
 	GasPrice *big.Int       `json:"gasPrice"`
@@ -247,7 +247,7 @@ func (msg *CallMsg) UnmarshalJSON(data []byte) error {
 	msg.From = ethcom.HexToAddress(obj.Get("from").String())
 	msg.To = ethcom.HexToAddress(obj.Get("to").String())
 	msg.Nonce, _ = hexutil.DecodeUint64(obj.Get("nonce").String())
-	msg.Amount, _ = hexutil.DecodeBig(obj.Get("amount").String())
+	msg.Value, _ = hexutil.DecodeBig(obj.Get("value").String())
 	msg.GasLimit, _ = hexutil.DecodeUint64(obj.Get("gasLimit").String())
 	msg.Gas, _ = hexutil.DecodeUint64(obj.Get("gas").String())
 	msg.GasPrice, _ = hexutil.DecodeBig(obj.Get("gasPrice").String())
@@ -264,8 +264,8 @@ func (msg *CallMsg) MarshalJSON() ([]byte, error) {
 		"gas":      hexutil.EncodeUint64(msg.Nonce),
 	}
 
-	if msg.Amount != nil {
-		obj["amount"] = hexutil.EncodeBig(msg.Amount)
+	if msg.Value != nil {
+		obj["value"] = hexutil.EncodeBig(msg.Value)
 	}
 	if msg.GasPrice != nil {
 		obj["gasPrice"] = hexutil.EncodeBig(msg.GasPrice)

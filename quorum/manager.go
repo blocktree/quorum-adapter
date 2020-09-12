@@ -187,10 +187,10 @@ func (wm *WalletManager) ERC20GetAddressBalance(address string, contractAddr str
 
 	//toAddr := ethcom.HexToAddress(contractAddr)
 	callMsg := CallMsg{
-		From: ethcom.HexToAddress(address),
-		To:   ethcom.HexToAddress(contractAddr),
-		Data: data,
-		Amount: big.NewInt(0),
+		From:  ethcom.HexToAddress(address),
+		To:    ethcom.HexToAddress(contractAddr),
+		Data:  data,
+		Value: big.NewInt(0),
 	}
 
 	result, err := wm.EthCall(callMsg, "latest")
@@ -421,7 +421,7 @@ func (wm *WalletManager) EthCall(callMsg CallMsg, sign string) (string, error) {
 	param := map[string]interface{}{
 		"from":  callMsg.From.String(),
 		"to":    callMsg.To.String(),
-		"value": hexutil.EncodeBig(callMsg.Amount),
+		"value": hexutil.EncodeBig(callMsg.Value),
 		"data":  hexutil.Encode(callMsg.Data),
 	}
 	result, err := wm.WalletClient.Call("eth_call", []interface{}{param, sign})

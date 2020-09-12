@@ -182,7 +182,7 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 			From:  ethcom.HexToAddress(decoder.wm.CustomAddressDecodeFunc(defAddress.Address)),
 			To:    ethcom.HexToAddress(decoder.wm.CustomAddressDecodeFunc(rawTx.Coin.Contract.Address)),
 			Data:  data,
-			Amount: value,
+			Value: value,
 		}
 		log.Infof("call data: %s", hex.EncodeToString(data))
 		return &callMsg, &abiInstance, nil
@@ -258,7 +258,7 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 	data := callMsg.Data
 
 	//amount := common.StringNumToBigIntWithExp(rawTx.Value, decoder.wm.Decimal())
-	amount := callMsg.Amount
+	amount := callMsg.Value
 
 	if callMsg.GasPrice != nil && callMsg.GasPrice.Cmp(big.NewInt(0)) > 0 && callMsg.Gas > 0 {
 		bigGas := new(big.Int)
