@@ -177,7 +177,7 @@ type BlockTransaction struct {
 	Timestamp        string `json:"timestamp"`
 	BlockHeight      uint64 //transaction scanning 的时候对其进行赋值
 	FilterFunc       openwallet.BlockScanTargetFuncV2
-	Status           uint64
+	Status           uint64 `json:"-"`
 	receipt          *TransactionReceipt
 	decimal          int32
 }
