@@ -213,7 +213,7 @@ func (bs *BlockScanner) ScanBlockTask() {
 
 		curBlock, err := bs.wm.GetBlockByNum(curBlockHeight, true)
 		if err != nil {
-			bs.wm.Log.Errorf("EthGetBlockSpecByBlockNum failed, err = %v", err)
+			//bs.wm.Log.Errorf("EthGetBlockSpecByBlockNum failed, err = %v", err)
 			break
 		}
 
