@@ -304,6 +304,11 @@ func (wm *WalletManager) GetGasEstimated(from string, to string, value *big.Int,
 	if err != nil {
 		return big.NewInt(0), fmt.Errorf("convert estimated gas[%v] format to bigint failed, err = %v\n", result.String(), err)
 	}
+	if data != nil {
+		//当data有值时，代表交易是调用合约， gasLimit = gasLimit * 1.1，确保gas足够
+		gasLimit = gasLimit.Mul(gasLimit, big.NewInt(110))
+		gasLimit = gasLimit.Div(gasLimit, big.NewInt(100))
+	}
 	return gasLimit, nil
 }
 
