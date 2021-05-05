@@ -24,6 +24,7 @@ import (
 
 type Client struct {
 	BaseURL string
+	BroadcastURL string
 	Debug   bool
 }
 
@@ -38,7 +39,13 @@ func (c *Client) Call(method string, params []interface{}) (*gjson.Result, error
 	body["method"] = method
 	body["params"] = params
 
-	r, err := req.Post(c.BaseURL, req.BodyJSON(&body), authHeader)
+	url := c.BaseURL
+	if method == "eth_sendRawTransaction" && len(c.BroadcastURL) != 0 {
+		// 广播交易使用BroadcastURL的节点
+		url = c.BroadcastURL
+	}
+
+	r, err := req.Post(url, req.BodyJSON(&body), authHeader)
 
 	if c.Debug {
 		log.Debugf("%+v\n", r)

@@ -49,6 +49,8 @@ type WalletConfig struct {
 	OffsetsGasPrice *big.Int
 	//nonce计算方式, 0: auto-increment nonce, 1: latest nonce
 	NonceComputeMode int64
+	//Broadcast node RPC API
+	BroadcastAPI string
 }
 
 func NewConfig(symbol string) *WalletConfig {

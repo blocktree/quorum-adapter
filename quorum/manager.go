@@ -41,6 +41,7 @@ type WalletManager struct {
 
 	RawClient               *ethclient.Client               //原生ETH客户端
 	WalletClient            *quorum_rpc.Client              // 节点客户端
+	BroadcastClient         *quorum_rpc.Client              // 节点客户端
 	Config                  *WalletConfig                   //钱包管理配置
 	Blockscanner            openwallet.BlockScanner         //区块扫描器
 	Decoder                 openwallet.AddressDecoderV2     //地址编码器
@@ -536,10 +537,10 @@ func removeOxFromHex(value string) string {
 }
 
 // convertStringParamToABIParam string参数转为ABI参数
-func convertStringParamToABIParam(inputType abi.Type, abiArg string) (interface{}, error){
+func convertStringParamToABIParam(inputType abi.Type, abiArg string) (interface{}, error) {
 	var (
-		err  error
-		a interface{}
+		err error
+		a   interface{}
 	)
 
 	switch inputType.T {
@@ -571,10 +572,10 @@ func convertStringParamToABIParam(inputType abi.Type, abiArg string) (interface{
 }
 
 //convertArrayParamToABIParam 数组参数转化
-func convertArrayParamToABIParam(inputType abi.Type, subArgs []string) (interface{}, error){
+func convertArrayParamToABIParam(inputType abi.Type, subArgs []string) (interface{}, error) {
 	var (
-		err  error
-		a interface{}
+		err error
+		a   interface{}
 	)
 
 	switch inputType.T {
