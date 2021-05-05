@@ -62,7 +62,7 @@ func (wm *WalletManager) GetBlockScanner() openwallet.BlockScanner {
 func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	wm.Config.ServerAPI = c.String("serverAPI")
 	wm.Config.BroadcastAPI = c.String("broadcastAPI")
-	client := &quorum_rpc.Client{BaseURL: wm.Config.ServerAPI, BroadcastURL: wm.Config.BroadcastAPI, Debug: true}
+	client := &quorum_rpc.Client{BaseURL: wm.Config.ServerAPI, BroadcastURL: wm.Config.BroadcastAPI, Debug: false}
 	wm.WalletClient = client
 	wm.Config.DataDir = c.String("dataDir")
 	fixGasLimit := c.String("fixGasLimit")
