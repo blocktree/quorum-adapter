@@ -286,7 +286,7 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 	}
 
 	//检查调用地址是否有足够手续费
-	coinBalance, err := decoder.wm.GetAddrBalance(strings.ToLower(callMsg.From.String()), "pending")
+	coinBalance, err := decoder.wm.GetAddrBalance(strings.ToLower(callMsg.From.String()), "latest")
 	if err != nil {
 		return openwallet.Errorf(openwallet.ErrCreateRawSmartContractTransactionFailed, err.Error())
 	}

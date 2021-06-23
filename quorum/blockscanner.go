@@ -513,7 +513,7 @@ func (bs *BlockScanner) GetBalanceByAddress(address ...string) ([]*openwallet.Ba
 			return
 		}
 
-		balanceAll, err := bs.wm.GetAddrBalance(addr.Address, "pending")
+		balanceAll, err := bs.wm.GetAddrBalance(addr.Address, "latest")
 		if err != nil {
 			balanceAll = balanceConfirmed
 		}
