@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/blocktree/openwallet/v2/common"
+	"github.com/blocktree/openwallet/v2/log"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/shopspring/decimal"
 	"math/big"
@@ -752,6 +753,8 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrap
 					}
 				}
 
+				supportAmount = supportAmount.Truncate(decoder.wm.Decimal())
+
 				decoder.wm.Log.Debugf("create transaction for fees support account")
 				decoder.wm.Log.Debugf("fees account: %s", feesSupportAccount.AccountID)
 				decoder.wm.Log.Debugf("mini support amount: %s", fees.String())
@@ -916,7 +919,7 @@ func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.Wa
 	} else {
 		//构建QUORUM交易
 		amount := common.StringNumToBigIntWithExp(amountStr, decoder.wm.Decimal())
-
+		log.Debugf("tx amount = %s", amount.String())
 		totalAmount := new(big.Int)
 		totalAmount.Add(amount, fee.Fee)
 		if addrBalance.Balance.Cmp(totalAmount) < 0 {
