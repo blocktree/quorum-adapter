@@ -178,13 +178,13 @@ type BlockTransaction struct {
 	BlockHeight      uint64 //transaction scanning 的时候对其进行赋值
 	FilterFunc       openwallet.BlockScanTargetFuncV2
 	Status           uint64 `json:"-"`
-	receipt          *TransactionReceipt
-	decimal          int32
+	Receipt          *TransactionReceipt
+	Decimal          int32
 }
 
 func (this *BlockTransaction) GetAmountEthString() string {
 	amount, _ := hexutil.DecodeBig(this.Value)
-	amountVal := common.BigIntToDecimals(amount, this.decimal)
+	amountVal := common.BigIntToDecimals(amount, this.Decimal)
 	return amountVal.String()
 }
 
@@ -193,7 +193,7 @@ func (this *BlockTransaction) GetTxFeeEthString() string {
 	gas := common.StringNumToBigIntWithExp(this.Gas, 0)
 	fee := big.NewInt(0)
 	fee.Mul(gasPrice, gas)
-	feeprice := common.BigIntToDecimals(fee, this.decimal)
+	feeprice := common.BigIntToDecimals(fee, this.Decimal)
 	return feeprice.String()
 }
 

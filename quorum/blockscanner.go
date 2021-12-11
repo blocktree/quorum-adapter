@@ -460,13 +460,13 @@ func (bs *BlockScanner) UpdateTxByReceipt(tx *BlockTransaction) error {
 	//获取交易回执
 	txReceipt, err := bs.wm.GetTransactionReceipt(tx.Hash)
 	if err != nil {
-		bs.wm.Log.Errorf("get transaction receipt failed, err: %v", err)
+		bs.wm.Log.Errorf("get transaction Receipt failed, err: %v", err)
 		return err
 	}
-	tx.receipt = txReceipt
+	tx.Receipt = txReceipt
 	tx.Gas = common.NewString(txReceipt.ETHReceipt.GasUsed).String()
 	tx.Status = txReceipt.ETHReceipt.Status
-	tx.decimal = bs.wm.Decimal()
+	tx.Decimal = bs.wm.Decimal()
 
 	return nil
 }
@@ -586,7 +586,7 @@ func (bs *BlockScanner) ExtractTransaction(tx *BlockTransaction) ExtractResult {
 // extractBaseTransaction 提取转账交易单
 func (bs *BlockScanner) extractBaseTransaction(tx *BlockTransaction, result *ExtractResult) {
 
-	tokenEvent := tx.receipt.ParseTransferEvent()
+	tokenEvent := tx.Receipt.ParseTransferEvent()
 
 	isTokenTransfer := false
 	if len(tokenEvent) > 0 {
@@ -920,7 +920,7 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 
 	//迭代每个日志，提取时间日志
 	events := make([]*openwallet.SmartContractEvent, 0)
-	for _, log := range tx.receipt.ETHReceipt.Logs {
+	for _, log := range tx.Receipt.ETHReceipt.Logs {
 
 		logContractAddress := strings.ToLower(log.Address.String())
 
@@ -975,7 +975,7 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 		To:          tx.To,
 		Fees:        tx.GetTxFeeEthString(),
 		Value:       tx.GetAmountEthString(),
-		RawReceipt:  tx.receipt.Raw,
+		RawReceipt:  tx.Receipt.Raw,
 		Events:      events,
 		BlockHash:   tx.BlockHash,
 		BlockHeight: tx.BlockHeight,
