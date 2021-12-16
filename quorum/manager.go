@@ -17,6 +17,8 @@ package quorum
 import (
 	"encoding/json"
 	"fmt"
+	"reflect"
+
 	"github.com/blocktree/go-owcrypt"
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/blocktree/openwallet/v2/log"
@@ -29,7 +31,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"reflect"
 
 	//	"log"
 	"math/big"
@@ -77,7 +78,7 @@ func (wm *WalletManager) GetTransactionCount(addr string) (uint64, error) {
 		return 0, fmt.Errorf("wallet client is not initialized")
 	}
 
-	result, err := wm.WalletClient.Call("eth_getTransactionCount", params)
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_getTransactionCount", params)
 	if err != nil {
 		return 0, err
 	}
@@ -92,7 +93,7 @@ func (wm *WalletManager) GetTransactionReceipt(transactionId string) (*Transacti
 	}
 
 	var ethReceipt types.Receipt
-	result, err := wm.WalletClient.Call("eth_getTransactionReceipt", params)
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_getTransactionReceipt", params)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +115,7 @@ func (wm *WalletManager) GetTransactionByHash(txid string) (*BlockTransaction, e
 	}
 
 	var tx BlockTransaction
-	result, err := wm.WalletClient.Call("eth_getTransactionByHash", params)
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_getTransactionByHash", params)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +141,7 @@ func (wm *WalletManager) GetBlockByNum(blockNum uint64, showTransactionSpec bool
 	}
 	var ethBlock EthBlock
 
-	result, err := wm.WalletClient.Call("eth_getBlockByNumber", params)
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_getBlockByNumber", params)
 	if err != nil {
 		return nil, err
 	}
@@ -218,7 +219,7 @@ func (wm *WalletManager) GetAddrBalance(address string, sign string) (*big.Int, 
 		AppendOxToAddress(address),
 		sign,
 	}
-	result, err := wm.WalletClient.Call("eth_getBalance", params)
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_getBalance", params)
 	if err != nil {
 		return big.NewInt(0), err
 	}
@@ -233,7 +234,7 @@ func (wm *WalletManager) GetAddrBalance(address string, sign string) (*big.Int, 
 // GetBlockNumber
 func (wm *WalletManager) GetBlockNumber() (uint64, error) {
 	param := make([]interface{}, 0)
-	result, err := wm.WalletClient.Call("eth_blockNumber", param)
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_blockNumber", param)
 	if err != nil {
 		return 0, err
 	}
@@ -297,7 +298,7 @@ func (wm *WalletManager) GetGasEstimated(from string, to string, value *big.Int,
 		callMsg["value"] = hexutil.EncodeBig(value)
 	}
 
-	result, err := wm.WalletClient.Call("eth_estimateGas", []interface{}{callMsg})
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_estimateGas", []interface{}{callMsg})
 	if err != nil {
 		return big.NewInt(0), err
 	}
@@ -315,7 +316,7 @@ func (wm *WalletManager) GetGasEstimated(from string, to string, value *big.Int,
 
 func (wm *WalletManager) GetGasPrice() (*big.Int, error) {
 
-	result, err := wm.WalletClient.Call("eth_gasPrice", []interface{}{})
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_gasPrice", []interface{}{})
 	if err != nil {
 		return big.NewInt(0), err
 	}
@@ -329,7 +330,7 @@ func (wm *WalletManager) GetGasPrice() (*big.Int, error) {
 
 func (wm *WalletManager) SetNetworkChainID() (uint64, error) {
 
-	result, err := wm.WalletClient.Call("eth_chainId", nil)
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_chainId", nil)
 	if err != nil {
 		return 0, err
 	}
@@ -430,7 +431,7 @@ func (wm *WalletManager) EthCall(callMsg CallMsg, sign string) (string, error) {
 		"value": hexutil.EncodeBig(callMsg.Value),
 		"data":  hexutil.Encode(callMsg.Data),
 	}
-	result, err := wm.WalletClient.Call("eth_call", []interface{}{param, sign})
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_call", []interface{}{param, sign})
 	if err != nil {
 		return "", err
 	}
@@ -443,7 +444,7 @@ func (wm *WalletManager) SendRawTransaction(signedTx string) (string, error) {
 		signedTx,
 	}
 
-	result, err := wm.WalletClient.Call("eth_sendRawTransaction", params)
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_sendRawTransaction", params)
 	if err != nil {
 		return "", err
 	}
@@ -458,7 +459,7 @@ func (wm *WalletManager) IsContract(address string) (bool, error) {
 		"latest",
 	}
 
-	result, err := wm.WalletClient.Call("eth_getCode", params)
+	result, err := wm.WalletClient.Call(strings.ToLower(wm.Config.Symbol)+"_getCode", params)
 	if err != nil {
 		return false, err
 	}

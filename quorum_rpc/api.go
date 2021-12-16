@@ -17,15 +17,17 @@ package quorum_rpc
 import (
 	"errors"
 	"fmt"
+	"strings"
+
 	"github.com/blocktree/openwallet/v2/log"
 	"github.com/imroc/req"
 	"github.com/tidwall/gjson"
 )
 
 type Client struct {
-	BaseURL string
+	BaseURL      string
 	BroadcastURL string
-	Debug   bool
+	Debug        bool
 }
 
 func (c *Client) Call(method string, params []interface{}) (*gjson.Result, error) {
@@ -40,7 +42,7 @@ func (c *Client) Call(method string, params []interface{}) (*gjson.Result, error
 	body["params"] = params
 
 	url := c.BaseURL
-	if method == "eth_sendRawTransaction" && len(c.BroadcastURL) != 0 {
+	if strings.HasSuffix(method, "sendRawTransaction") && len(c.BroadcastURL) != 0 {
 		// 广播交易使用BroadcastURL的节点
 		url = c.BroadcastURL
 	}
