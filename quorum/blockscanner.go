@@ -753,6 +753,7 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 		tokenName     string
 		tokenSymbol   string
 		tokenDecimals uint8
+		out           []interface{}
 	)
 
 	nowUnix := time.Now().Unix()
@@ -763,9 +764,23 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 	contractId := openwallet.GenContractID(bs.wm.Symbol(), contractAddress)
 
 	bc := bind.NewBoundContract(ethcom.HexToAddress(contractAddress), ERC20_ABI, bs.wm.RawClient, bs.wm.RawClient, nil)
-	bc.Call(&bind.CallOpts{}, &tokenName, "name")
-	bc.Call(&bind.CallOpts{}, &tokenSymbol, "symbol")
-	bc.Call(&bind.CallOpts{}, &tokenDecimals, "decimals")
+	bc.Call(&bind.CallOpts{}, &out, "name")
+	if out != nil && len(out) > 0 {
+		tokenName = common.NewString(out[0]).String()
+		out = nil
+	}
+
+	bc.Call(&bind.CallOpts{}, &out, "symbol")
+	if out != nil && len(out) > 0 {
+		tokenSymbol = common.NewString(out[0]).String()
+		out = nil
+	}
+
+	bc.Call(&bind.CallOpts{}, &out, "decimals")
+	if out != nil && len(out) > 0 {
+		tokenDecimals = common.NewString(out[0]).UInt8()
+		out = nil
+	}
 
 	coin := openwallet.Coin{
 		Symbol:     bs.wm.Symbol(),

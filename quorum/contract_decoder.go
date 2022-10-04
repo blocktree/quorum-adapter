@@ -141,7 +141,6 @@ func (decoder *EthContractDecoder) EncodeRawTransactionCallMsg(wrapper openwalle
 
 	value := common.StringNumToBigIntWithExp(rawTx.Value, decoder.wm.Decimal())
 
-
 	if len(rawTx.Raw) > 0 {
 		var decErr error
 		//直接的数据请求
@@ -246,8 +245,8 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 
 	var (
 		keySignList = make([]*openwallet.KeySignature, 0)
-		fee *txFeeInfo
-		feeErr error
+		fee         *txFeeInfo
+		feeErr      error
 	)
 
 	callMsg, _, encErr := decoder.EncodeRawTransactionCallMsg(wrapper, rawTx)

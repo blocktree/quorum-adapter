@@ -12,11 +12,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  */
+
 package quorum
 
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/blocktree/go-owcrypt"
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/blocktree/openwallet/v2/log"
@@ -29,7 +31,6 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"reflect"
 
 	//	"log"
 	"math/big"
@@ -47,6 +48,7 @@ type WalletManager struct {
 	Decoder                 openwallet.AddressDecoderV2     //地址编码器
 	TxDecoder               openwallet.TransactionDecoder   //交易单编码器
 	ContractDecoder         openwallet.SmartContractDecoder //智能合约解释器
+	NFTContractDecoder      openwallet.NFTContractDecoder   //NFT智能合约解释器
 	Log                     *log.OWLogger                   //日志工具
 	CustomAddressEncodeFunc func(address string) string     //自定义地址转换算法
 	CustomAddressDecodeFunc func(address string) string     //自定义地址转换算法
@@ -59,6 +61,7 @@ func NewWalletManager() *WalletManager {
 	wm.Decoder = &quorum_addrdec.Default
 	wm.TxDecoder = NewTransactionDecoder(&wm)
 	wm.ContractDecoder = &EthContractDecoder{wm: &wm}
+	wm.NFTContractDecoder = &NFTContractDecoder{wm: &wm}
 	wm.Log = log.NewOWLogger(wm.Symbol())
 	wm.CustomAddressEncodeFunc = CustomAddressEncode
 	wm.CustomAddressDecodeFunc = CustomAddressDecode
@@ -424,6 +427,9 @@ func (wm *WalletManager) DecodeReceiptLogResult(abiInstance abi.ABI, log types.L
 }
 
 func (wm *WalletManager) EthCall(callMsg CallMsg, sign string) (string, error) {
+	if callMsg.Value == nil {
+		callMsg.Value = big.NewInt(0)
+	}
 	param := map[string]interface{}{
 		"from":  callMsg.From.String(),
 		"to":    callMsg.To.String(),
@@ -556,9 +562,10 @@ func convertStringParamToABIParam(inputType abi.Type, abiArg string) (interface{
 			slice = owcrypt.Hash([]byte(abiArg), 0, owcrypt.HASH_ALG_KECCAK256)
 			//return nil, fmt.Errorf("abi input hex string can not convert byte, err: %v", decodeErr)
 		}
-		var fixBytes [32]byte
-		copy(fixBytes[:], slice)
-		a = fixBytes
+		// var fixBytes [32]byte
+		// copy(fixBytes[:], slice)
+		// a = fixBytes
+		a = packFixArray(slice, a)
 	case abi.StringTy:
 		a = abiArg
 	case abi.ArrayTy, abi.SliceTy:
@@ -655,45 +662,46 @@ func convertArrayParamToABIParam(inputType abi.Type, subArgs []string) (interfac
 func convertParamToNum(param string, abiType abi.Type) (interface{}, error) {
 	var (
 		base int
-		bInt *big.Int
-		err  error
+		//bInt *big.Int
+		//err  error
 	)
 	if strings.HasPrefix(param, "0x") {
 		base = 16
 	} else {
 		base = 10
 	}
-	bInt, err = common.StringValueToBigInt(param, base)
-	if err != nil {
-		return nil, err
-	}
-
-	switch abiType.Kind {
-	case reflect.Uint:
-		return uint(bInt.Uint64()), nil
-	case reflect.Uint8:
-		return uint8(bInt.Uint64()), nil
-	case reflect.Uint16:
-		return uint16(bInt.Uint64()), nil
-	case reflect.Uint32:
-		return uint32(bInt.Uint64()), nil
-	case reflect.Uint64:
-		return uint64(bInt.Uint64()), nil
-	case reflect.Int:
-		return int(bInt.Int64()), nil
-	case reflect.Int8:
-		return int8(bInt.Int64()), nil
-	case reflect.Int16:
-		return int16(bInt.Int64()), nil
-	case reflect.Int32:
-		return int32(bInt.Int64()), nil
-	case reflect.Int64:
-		return int64(bInt.Int64()), nil
-	case reflect.Ptr:
-		return bInt, nil
-	default:
-		return nil, fmt.Errorf("abi input arguments: %v is invaild integer type", param)
-	}
+	return common.StringValueToBigInt(param, base)
+	//bInt, err = common.StringValueToBigInt(param, base)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//switch abiType.Kind {
+	//case reflect.Uint:
+	//	return uint(bInt.Uint64()), nil
+	//case reflect.Uint8:
+	//	return uint8(bInt.Uint64()), nil
+	//case reflect.Uint16:
+	//	return uint16(bInt.Uint64()), nil
+	//case reflect.Uint32:
+	//	return uint32(bInt.Uint64()), nil
+	//case reflect.Uint64:
+	//	return uint64(bInt.Uint64()), nil
+	//case reflect.Int:
+	//	return int(bInt.Int64()), nil
+	//case reflect.Int8:
+	//	return int8(bInt.Int64()), nil
+	//case reflect.Int16:
+	//	return int16(bInt.Int64()), nil
+	//case reflect.Int32:
+	//	return int32(bInt.Int64()), nil
+	//case reflect.Int64:
+	//	return int64(bInt.Int64()), nil
+	//case reflect.Ptr:
+	//	return bInt, nil
+	//default:
+	//	return nil, fmt.Errorf("abi input arguments: %v is invaild integer type", param)
+	//}
 }
 
 func CustomAddressEncode(address string) string {
@@ -701,4 +709,74 @@ func CustomAddressEncode(address string) string {
 }
 func CustomAddressDecode(address string) string {
 	return address
+}
+
+func packFixArray(slice []byte, a interface{}) interface{} {
+	switch len(slice) {
+	case 2:
+		var fixBytes [2]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 4:
+		var fixBytes [4]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 6:
+		var fixBytes [6]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 8:
+		var fixBytes [8]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 10:
+		var fixBytes [10]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 12:
+		var fixBytes [12]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 14:
+		var fixBytes [14]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 16:
+		var fixBytes [16]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 18:
+		var fixBytes [18]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 20:
+		var fixBytes [20]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 22:
+		var fixBytes [22]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 24:
+		var fixBytes [24]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 26:
+		var fixBytes [26]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 28:
+		var fixBytes [28]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 30:
+		var fixBytes [30]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	case 32:
+		var fixBytes [32]byte
+		copy(fixBytes[:], slice)
+		a = fixBytes
+	}
+	return a
 }

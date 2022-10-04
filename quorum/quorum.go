@@ -12,6 +12,7 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU Lesser General Public License for more details.
  */
+
 package quorum
 
 import (
@@ -113,4 +114,10 @@ func (wm *WalletManager) GetSmartContractDecoder() openwallet.SmartContractDecod
 
 func (wm *WalletManager) BalanceModelType() openwallet.BalanceModelType {
 	return openwallet.BalanceModelTypeAddress
+}
+
+//GetNFTContractDecoder 获取NFT智能合约解析器
+//@optional
+func (wm *WalletManager) GetNFTContractDecoder() openwallet.NFTContractDecoder {
+	return wm.NFTContractDecoder
 }
