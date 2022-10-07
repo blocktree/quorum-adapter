@@ -518,6 +518,64 @@ func (wm *WalletManager) GetAddressNonce(wrapper openwallet.WalletDAI, address s
 	return nonce
 }
 
+func (wm *WalletManager) CallABI(contractAddr string, abiInstance abi.ABI, abiParam ...string) (map[string]interface{}, *openwallet.Error) {
+
+	methodName := ""
+	if len(abiParam) > 0 {
+		methodName = abiParam[0]
+	}
+
+	//abi编码
+	data, err := wm.EncodeABIParam(abiInstance, abiParam...)
+	if err != nil {
+		return nil, openwallet.ConvertError(err)
+	}
+
+	callMsg := CallMsg{
+		From:  ethcom.HexToAddress("0x00"),
+		To:    ethcom.HexToAddress(contractAddr),
+		Data:  data,
+		Value: big.NewInt(0),
+	}
+
+	result, err := wm.EthCall(callMsg, "latest")
+	if err != nil {
+		return nil, openwallet.ConvertError(err)
+	}
+
+	rMap, _, err := wm.DecodeABIResult(abiInstance, methodName, result)
+	if err != nil {
+		return nil, openwallet.ConvertError(err)
+	}
+
+	return rMap, nil
+}
+
+func (wm *WalletManager) SupportsInterface(contractAddr string) string {
+	//is support erc721
+	result721, _ := wm.CallABI(contractAddr, ERC721_ABI, "supportsInterface", "0x80ac58cd")
+	//if err != nil {
+	//	log.Errorf("SupportsInterface: %+v", err)
+	//}
+	//is support erc1155
+	result1155, _ := wm.CallABI(contractAddr, ERC721_ABI, "supportsInterface", "0xd9b67a26")
+	//if err != nil {
+	//	log.Errorf("SupportsInterface: %+v", err)
+	//}
+
+	support721, ok := result721[""].(bool)
+	if ok && support721 {
+		return openwallet.InterfaceTypeERC721
+	}
+
+	support1155, ok := result1155[""].(bool)
+	if ok && support1155 {
+		return openwallet.InterfaceTypeERC1155
+	}
+
+	return openwallet.InterfaceTypeUnknown
+}
+
 // UpdateAddressNonce
 func (wm *WalletManager) UpdateAddressNonce(wrapper openwallet.WalletDAI, address string, nonce uint64) {
 	key := wm.Symbol() + "-nonce"
@@ -525,6 +583,51 @@ func (wm *WalletManager) UpdateAddressNonce(wrapper openwallet.WalletDAI, addres
 	if err != nil {
 		wm.Log.Errorf("WalletDAI SetAddressExtParam failed, err: %v", err)
 	}
+}
+
+// LoadContractInfo 通过地址加载合约信息
+func (wm *WalletManager) LoadContractInfo(addr string) *openwallet.SmartContract {
+	var (
+		contract *openwallet.SmartContract
+		abiInst  abi.ABI
+		abiJSON  = ""
+		token    = ""
+		name     = ""
+	)
+	inferfaceType := wm.SupportsInterface(addr)
+	switch inferfaceType {
+	case openwallet.InterfaceTypeERC721:
+		abiJSON = ERC721_ABI_JSON
+		abiInst = ERC721_ABI
+
+	case openwallet.InterfaceTypeERC1155:
+		abiJSON = ERC1155_ABI_JSON
+		abiInst = ERC1155_ABI
+	default:
+		return nil
+	}
+
+	result, err := wm.CallABI(addr, abiInst, "symbol")
+	if err == nil {
+		token = result[""].(string)
+	}
+	result, err = wm.CallABI(addr, abiInst, "name")
+	if err == nil {
+		name = result[""].(string)
+	}
+
+	contractId := openwallet.GenContractID(wm.Symbol(), addr)
+	contract = &openwallet.SmartContract{
+		ContractID: contractId,
+		Symbol:     wm.Symbol(),
+		Address:    addr,
+		Decimals:   0,
+		Token:      token,
+		Name:       name,
+		Protocol:   inferfaceType,
+	}
+	contract.SetABI(abiJSON)
+	return contract
 }
 
 func AppendOxToAddress(addr string) string {

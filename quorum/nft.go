@@ -20,73 +20,13 @@ import (
 	"math/big"
 	"strings"
 
-	"github.com/blocktree/openwallet/v2/log"
 	"github.com/blocktree/openwallet/v2/openwallet"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	ethcom "github.com/ethereum/go-ethereum/common"
 )
 
 type NFTContractDecoder struct {
 	*openwallet.NFTContractDecoderBase
 	wm *WalletManager
-}
-
-func (decoder *NFTContractDecoder) CallABI(contractAddr string, abiInstance abi.ABI, abiParam ...string) (map[string]interface{}, *openwallet.Error) {
-
-	methodName := ""
-	if len(abiParam) > 0 {
-		methodName = abiParam[0]
-	}
-
-	//abi编码
-	data, err := decoder.wm.EncodeABIParam(abiInstance, abiParam...)
-	if err != nil {
-		return nil, openwallet.ConvertError(err)
-	}
-
-	callMsg := CallMsg{
-		From:  ethcom.HexToAddress("0x00"),
-		To:    ethcom.HexToAddress(contractAddr),
-		Data:  data,
-		Value: big.NewInt(0),
-	}
-
-	result, err := decoder.wm.EthCall(callMsg, "latest")
-	if err != nil {
-		return nil, openwallet.ConvertError(err)
-	}
-
-	rMap, _, err := decoder.wm.DecodeABIResult(abiInstance, methodName, result)
-	if err != nil {
-		return nil, openwallet.ConvertError(err)
-	}
-
-	return rMap, nil
-}
-
-func (decoder *NFTContractDecoder) SupportsInterface(contractAddr string) string {
-	//is support erc721
-	result721, err := decoder.CallABI(contractAddr, ERC721_ABI, "supportsInterface", "0x80ac58cd")
-	if err != nil {
-		log.Errorf("SupportsInterface: %+v", err)
-	}
-	//is support erc1155
-	result1155, err := decoder.CallABI(contractAddr, ERC721_ABI, "supportsInterface", "0xd9b67a26")
-	if err != nil {
-		log.Errorf("SupportsInterface: %+v", err)
-	}
-
-	support721, ok := result721[""].(bool)
-	if ok && support721 {
-		return openwallet.InterfaceTypeERC721
-	}
-
-	support1155, ok := result1155[""].(bool)
-	if ok && support1155 {
-		return openwallet.InterfaceTypeERC1155
-	}
-
-	return openwallet.InterfaceTypeUnknown
 }
 
 // GetNFTBalanceByAddress 查询地址NFT余额列表
@@ -106,7 +46,7 @@ func (decoder *NFTContractDecoder) GetNFTBalanceByAddress(nft *openwallet.NFT, o
 			}
 		} else {
 			//call `balanceOf(address)`
-			result, err := decoder.CallABI(nft.Address, ERC721_ABI, "balanceOf", owner)
+			result, err := decoder.wm.CallABI(nft.Address, ERC721_ABI, "balanceOf", owner)
 			if err != nil {
 				return nil, err
 			}
@@ -117,7 +57,14 @@ func (decoder *NFTContractDecoder) GetNFTBalanceByAddress(nft *openwallet.NFT, o
 		}
 
 	case openwallet.InterfaceTypeERC1155:
-		balance = big.NewInt(0)
+		result, err := decoder.wm.CallABI(nft.Address, ERC1155_ABI, "balanceOf", owner, nft.TokenID)
+		if err != nil {
+			return nil, err
+		}
+		balanceRes, ok := result[""].(*big.Int)
+		if ok {
+			balance = balanceRes
+		}
 	default:
 		return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT interface type is invalid")
 	}
@@ -132,27 +79,66 @@ func (decoder *NFTContractDecoder) GetNFTBalanceByAddress(nft *openwallet.NFT, o
 
 // GetNFTBalanceByAddressBatch 查询地址NFT余额列表
 func (decoder *NFTContractDecoder) GetNFTBalanceByAddressBatch(nft []*openwallet.NFT, owner []string) ([]*openwallet.NFTBalance, *openwallet.Error) {
-	return nil, openwallet.Errorf(openwallet.ErrSystemException, "GetNFTBalanceByAddress not implement")
+	if len(nft) != len(owner) {
+		return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT array length is not equal to owner array length")
+	}
+	contractAddress := ""
+	ids := ""
+	owners := ""
+	for i, o := range nft {
+
+		if len(o.TokenID) == 0 {
+			return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT token id is empty")
+		}
+
+		if i == 0 {
+			contractAddress = o.Address
+			ids = o.Address
+			owners = owner[i]
+		} else {
+			ids = ids + "," + o.Address
+			owners = owners + "," + owner[i]
+		}
+		if contractAddress != o.Address {
+			return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFTs contract address is inconsistent")
+		}
+
+	}
+	result, err := decoder.wm.CallABI(contractAddress, ERC1155_ABI, "balanceOfBatch", owners, ids)
+	if err != nil {
+		return nil, err
+	}
+	balanceRes, ok := result[""].([]*big.Int)
+	balances := make([]*openwallet.NFTBalance, 0)
+	if ok {
+		for i, re := range balanceRes {
+			nftBalance := &openwallet.NFTBalance{
+				NFT:     nft[i],
+				Balance: re.String(),
+			}
+			balances = append(balances, nftBalance)
+		}
+	}
+	return balances, nil
 }
 
 //GetNFTOwnerByTokenID 查询地址token的拥有者
 func (decoder *NFTContractDecoder) GetNFTOwnerByTokenID(nft *openwallet.NFT) (*openwallet.NFTOwner, *openwallet.Error) {
 
+	if len(nft.TokenID) == 0 {
+		return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT token id is empty")
+	}
+
 	owner := ""
 	switch nft.Protocol {
 	case openwallet.InterfaceTypeERC721:
-		if len(nft.TokenID) > 0 {
-			//call `ownerOf(tokenId)`
-			result, err := decoder.CallABI(nft.Address, ERC721_ABI, "ownerOf", nft.TokenID)
-			if err != nil {
-				return nil, err
-			}
-			ownerRes, ok := result["owner"].(ethcom.Address)
-			if ok {
-				owner = strings.ToLower(ownerRes.String())
-			}
-		} else {
-			return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT token id is empty")
+		result, err := decoder.wm.CallABI(nft.Address, ERC721_ABI, "ownerOf", nft.TokenID)
+		if err != nil {
+			return nil, err
+		}
+		ownerRes, ok := result["owner"].(ethcom.Address)
+		if ok {
+			owner = strings.ToLower(ownerRes.String())
 		}
 	default:
 		return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT interface type is not support")
@@ -170,21 +156,28 @@ func (decoder *NFTContractDecoder) GetNFTOwnerByTokenID(nft *openwallet.NFT) (*o
 //GetMetaDataOfNFT 查询NFT的MetaData
 func (decoder *NFTContractDecoder) GetMetaDataOfNFT(nft *openwallet.NFT) (*openwallet.NFTMetaData, *openwallet.Error) {
 
+	if len(nft.TokenID) == 0 {
+		return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT token id is empty")
+	}
 	uri := ""
 	switch nft.Protocol {
 	case openwallet.InterfaceTypeERC721:
-		if len(nft.TokenID) > 0 {
-			//call `ownerOf(tokenId)`
-			result, err := decoder.CallABI(nft.Address, ERC721_ABI, "tokenURI", nft.TokenID)
-			if err != nil {
-				return nil, err
-			}
-			uriRes, ok := result[""].(string)
-			if ok {
-				uri = uriRes
-			}
-		} else {
-			return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT token id is empty")
+		result, err := decoder.wm.CallABI(nft.Address, ERC721_ABI, "tokenURI", nft.TokenID)
+		if err != nil {
+			return nil, err
+		}
+		uriRes, ok := result[""].(string)
+		if ok {
+			uri = uriRes
+		}
+	case openwallet.InterfaceTypeERC1155:
+		result, err := decoder.wm.CallABI(nft.Address, ERC1155_ABI, "uri", nft.TokenID)
+		if err != nil {
+			return nil, err
+		}
+		uriRes, ok := result[""].(string)
+		if ok {
+			uri = uriRes
 		}
 	default:
 		return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT interface type is not support")
@@ -205,33 +198,83 @@ func (decoder *NFTContractDecoder) GetNFTTransfer(event *openwallet.SmartContrac
 		return nil, openwallet.Errorf(openwallet.ErrSystemException, "SmartContractEvent is nil")
 	}
 	var (
-		nftTx *openwallet.NFTTransfer
+		nftTx     *openwallet.NFTTransfer
+		from      = ""
+		to        = ""
+		operator  = ""
+		nfts      = make([]openwallet.NFT, 0)
+		amounts   = make([]string, 0)
+		eventType = openwallet.NFTEventTypeTransferred
 	)
-	//TODO: 检查合约是否支持nft协议
-	inferfaceType := decoder.SupportsInterface(event.Contract.Address)
+	// 检查合约是否支持nft协议
+	inferfaceType := decoder.wm.SupportsInterface(event.Contract.Address)
+	obj := gjson.ParseBytes([]byte(event.Value))
 	switch inferfaceType {
 	case openwallet.InterfaceTypeERC721:
 		//{"from":"0x1234","to":"0xabcd","tokenId":1414}}
-		obj := gjson.ParseBytes([]byte(event.Value))
-		nftTx = &openwallet.NFTTransfer{
-			Tokens: []openwallet.NFT{
-				openwallet.NFT{
+		operator = obj.Get("from").String()
+		from = obj.Get("from").String()
+		to = obj.Get("to").String()
+		amounts = append(amounts, "1")
+		nfts = append(nfts, openwallet.NFT{
+			Symbol:   event.Contract.Symbol,
+			Address:  event.Contract.Address,
+			Token:    event.Contract.Token,
+			Protocol: inferfaceType,
+			Name:     event.Contract.Name,
+			TokenID:  obj.Get("tokenId").String(),
+		})
+
+	case openwallet.InterfaceTypeERC1155:
+
+		operator = obj.Get("operator").String()
+		from = obj.Get("from").String()
+		to = obj.Get("to").String()
+
+		if event.Event == "TransferSingle" {
+			nfts = append(nfts, openwallet.NFT{
+				Symbol:   event.Contract.Symbol,
+				Address:  event.Contract.Address,
+				Token:    event.Contract.Token,
+				Protocol: inferfaceType,
+				Name:     event.Contract.Name,
+				TokenID:  obj.Get("tokenId").String(),
+			})
+			amounts = append(amounts, obj.Get("value").String())
+		} else if event.Event == "TransferBatch" {
+			ids := obj.Get("ids").Array()
+			values := obj.Get("values").Array()
+			for i, id := range ids {
+				nfts = append(nfts, openwallet.NFT{
 					Symbol:   event.Contract.Symbol,
 					Address:  event.Contract.Address,
 					Token:    event.Contract.Token,
 					Protocol: inferfaceType,
 					Name:     event.Contract.Name,
-					TokenID:  obj.Get("tokenId").String(),
-				},
-			},
-			Operator:  obj.Get("from").String(),
-			From:      obj.Get("from").String(),
-			To:        obj.Get("to").String(),
-			Amounts:   []string{"1"},
-			EventType: 0,
+					TokenID:  id.String(),
+				})
+				amounts = append(amounts, values[i].String())
+			}
 		}
+
 	default:
 		return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT interface type is not support")
+	}
+
+	if from == ethcom.HexToAddress("0x00").String() {
+		eventType = openwallet.NFTEventTypeMinted
+	}
+	if to == ethcom.HexToAddress("0x00").String() {
+		eventType = openwallet.NFTEventTypeBurned
+	}
+
+	nftTx = &openwallet.NFTTransfer{
+		Tokens:    nfts,
+		Operator:  operator,
+		From:      from,
+		To:        to,
+		Amounts:   amounts,
+		EventType: uint64(eventType),
 	}
 
 	return nftTx, nil

@@ -791,7 +791,7 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 			Symbol:     bs.wm.Symbol(),
 			Address:    contractAddress,
 			Token:      tokenSymbol,
-			Protocol:   "erc20",
+			Protocol:   openwallet.InterfaceTypeERC20,
 			Name:       tokenName,
 			Decimals:   uint64(tokenDecimals),
 		},
@@ -900,7 +900,10 @@ func (bs *BlockScanner) extractERC20Detail(tx *BlockTransaction, contractAddress
 // extractSmartContractTransaction 提取智能合约交易单
 func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, result *ExtractResult) {
 
-	contractAddress := strings.ToLower(tx.To)
+	var (
+		contractAddress = strings.ToLower(tx.To)
+		contract        *openwallet.SmartContract
+	)
 
 	//查找合约是否存在
 	targetResult := tx.FilterFunc(openwallet.ScanTargetParam{
@@ -908,20 +911,23 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 		Symbol:         bs.wm.Symbol(),
 		ScanTargetType: openwallet.ScanTargetTypeContractAddress})
 	if !targetResult.Exist {
-		return //不存在返回
-	}
-
-	//查找合约对象信息
-	contract, ok := targetResult.TargetInfo.(*openwallet.SmartContract)
-	if !ok {
-		bs.wm.Log.Errorf("tx to target result can not convert to openwallet.SmartContract")
-		result.Success = false
-		return
-	}
-
-	//没有纪录ABI，不处理提取
-	if len(contract.GetABI()) == 0 {
-		return
+		// 填充未知的智能合约
+		contractId := openwallet.GenContractID(bs.wm.Symbol(), contractAddress)
+		contract = &openwallet.SmartContract{
+			ContractID: contractId,
+			Symbol:     bs.wm.Symbol(),
+			Address:    contractAddress,
+			Decimals:   0,
+		}
+	} else {
+		//查找合约对象信息
+		contractExisted, ok := targetResult.TargetInfo.(*openwallet.SmartContract)
+		if !ok {
+			bs.wm.Log.Errorf("tx to target result can not convert to openwallet.SmartContract")
+			result.Success = false
+			return
+		}
+		contract = contractExisted
 	}
 
 	coin := openwallet.Coin{
@@ -936,25 +942,30 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 	//迭代每个日志，提取时间日志
 	events := make([]*openwallet.SmartContractEvent, 0)
 	for _, log := range tx.Receipt.ETHReceipt.Logs {
-
-		logContractAddress := strings.ToLower(log.Address.String())
+		var (
+			logContractAddress = strings.ToLower(log.Address.String())
+			logContract        *openwallet.SmartContract
+		)
 
 		logTargetResult := tx.FilterFunc(openwallet.ScanTargetParam{
 			ScanTarget:     logContractAddress,
 			Symbol:         bs.wm.Symbol(),
 			ScanTargetType: openwallet.ScanTargetTypeContractAddress})
-		if !logTargetResult.Exist {
-			continue
-		}
-		logContract, logOk := logTargetResult.TargetInfo.(*openwallet.SmartContract)
-		if !logOk {
-			bs.wm.Log.Errorf("log target result can not convert to openwallet.SmartContract")
-			result.Success = false
-			return
+		if logTargetResult.Exist {
+			logContractExisted, logOk := logTargetResult.TargetInfo.(*openwallet.SmartContract)
+			if !logOk {
+				bs.wm.Log.Errorf("log target result can not convert to openwallet.SmartContract")
+				result.Success = false
+				return
+			}
+			logContract = logContractExisted
+		} else {
+			// 检查是否属于系统默认支持的erc协议类型
+			logContract = bs.wm.LoadContractInfo(logContractAddress)
 		}
 
 		//没有纪录ABI，不处理提取
-		if len(logContract.GetABI()) == 0 {
+		if logContract == nil || len(logContract.GetABI()) == 0 {
 			continue
 		}
 
