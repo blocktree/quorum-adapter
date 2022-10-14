@@ -31,13 +31,13 @@ import (
 type subscriberSingle struct {
 }
 
-//BlockScanNotify 新区块扫描完成通知
+// BlockScanNotify 新区块扫描完成通知
 func (sub *subscriberSingle) BlockScanNotify(header *openwallet.BlockHeader) error {
 	log.Notice("header:", header)
 	return nil
 }
 
-//BlockTxExtractDataNotify 区块提取结果通知
+// BlockTxExtractDataNotify 区块提取结果通知
 func (sub *subscriberSingle) BlockExtractDataNotify(sourceKey string, data *openwallet.TxExtractData) error {
 	log.Notice("account:", sourceKey)
 
@@ -54,7 +54,7 @@ func (sub *subscriberSingle) BlockExtractDataNotify(sourceKey string, data *open
 	return nil
 }
 
-//BlockExtractSmartContractDataNotify 区块提取智能合约交易结果通知
+// BlockExtractSmartContractDataNotify 区块提取智能合约交易结果通知
 func (sub *subscriberSingle) BlockExtractSmartContractDataNotify(sourceKey string, data *openwallet.SmartContractReceipt) error {
 
 	log.Notice("sourceKey:", sourceKey)
@@ -62,6 +62,15 @@ func (sub *subscriberSingle) BlockExtractSmartContractDataNotify(sourceKey strin
 
 	for i, event := range data.Events {
 		log.Std.Notice("data.Events[%d]: %+v", i, event)
+		assetsMgr, err := openw.GetAssetsAdapter(data.Coin.Symbol)
+		if err != nil {
+			log.Error(data.Coin.Symbol, "is not support")
+			return nil
+		}
+		nftTx, _ := assetsMgr.GetNFTContractDecoder().GetNFTTransfer(event)
+		if nftTx != nil {
+			log.Std.Notice("NFT Transfer[%d]: %+v", i, nftTx)
+		}
 	}
 
 	return nil
@@ -91,7 +100,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	//scanner.SetRescanBlockHeight(25470)
+	scanner.SetRescanBlockHeight(78389)
 	scanner.Run()
 
 	<-endRunning
