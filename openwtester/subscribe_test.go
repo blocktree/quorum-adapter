@@ -100,7 +100,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(78389)
+	scanner.SetRescanBlockHeight(28680665)
 	scanner.Run()
 
 	<-endRunning

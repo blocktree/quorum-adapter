@@ -987,7 +987,7 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 
 		_, eventName, logJSON, logErr := bs.wm.DecodeReceiptLogResult(abiInstance, *log)
 		if logErr != nil {
-			bs.wm.Log.Errorf("DecodeReceiptLogResult failed, err: %v", logErr)
+			//bs.wm.Log.Errorf("DecodeReceiptLogResult failed, err: %v", logErr)
 			//result.Success = false
 			//return
 			continue

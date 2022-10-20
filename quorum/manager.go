@@ -609,11 +609,17 @@ func (wm *WalletManager) LoadContractInfo(addr string) *openwallet.SmartContract
 
 	result, err := wm.CallABI(addr, abiInst, "symbol")
 	if err == nil {
-		token = result[""].(string)
+		v, ok := result[""].(string)
+		if ok {
+			token = v
+		}
 	}
 	result, err = wm.CallABI(addr, abiInst, "name")
 	if err == nil {
-		name = result[""].(string)
+		v, ok := result[""].(string)
+		if ok {
+			name = v
+		}
 	}
 
 	contractId := openwallet.GenContractID(wm.Symbol(), addr)
@@ -681,7 +687,7 @@ func convertStringParamToABIParam(inputType abi.Type, abiArg string) (interface{
 	return a, nil
 }
 
-//convertArrayParamToABIParam 数组参数转化
+// convertArrayParamToABIParam 数组参数转化
 func convertArrayParamToABIParam(inputType abi.Type, subArgs []string) (interface{}, error) {
 	var (
 		err error
