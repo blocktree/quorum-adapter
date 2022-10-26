@@ -21,7 +21,8 @@ func testInitWalletManager() *openw.WalletManager {
 	tc.ConfigDir = configFilePath
 	tc.EnableBlockScan = false
 	tc.SupportAssets = []string{
-		"QUORUM",
+		ChainSymbol,
+		//"QUORUM",
 	}
 	return openw.NewWalletManager(tc)
 	//tm.Init()

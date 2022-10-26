@@ -69,6 +69,21 @@ func NewWalletManager() *WalletManager {
 	return &wm
 }
 
+func NewWalletManagerWithSymbol(symbol string) *WalletManager {
+	wm := WalletManager{}
+	wm.Config = NewConfig(symbol)
+	wm.Blockscanner = NewBlockScanner(&wm)
+	wm.Decoder = &quorum_addrdec.Default
+	wm.TxDecoder = NewTransactionDecoder(&wm)
+	wm.ContractDecoder = &EthContractDecoder{wm: &wm}
+	wm.NFTContractDecoder = &NFTContractDecoder{wm: &wm}
+	wm.Log = log.NewOWLogger(symbol)
+	wm.CustomAddressEncodeFunc = CustomAddressEncode
+	wm.CustomAddressDecodeFunc = CustomAddressDecode
+
+	return &wm
+}
+
 func (wm *WalletManager) GetTransactionCount(addr string) (uint64, error) {
 	addr = wm.CustomAddressDecodeFunc(addr)
 	params := []interface{}{

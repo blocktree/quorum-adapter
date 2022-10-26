@@ -265,8 +265,8 @@ func (msg *CallMsg) MarshalJSON() ([]byte, error) {
 		"from":     msg.From.String(),
 		"to":       msg.To.String(),
 		"nonce":    hexutil.EncodeUint64(msg.Nonce),
-		"gasLimit": hexutil.EncodeUint64(msg.Nonce),
-		"gas":      hexutil.EncodeUint64(msg.Nonce),
+		"gasLimit": hexutil.EncodeUint64(msg.GasLimit),
+		"gas":      hexutil.EncodeUint64(msg.Gas),
 	}
 
 	if msg.Value != nil {

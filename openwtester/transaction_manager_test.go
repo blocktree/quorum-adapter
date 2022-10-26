@@ -106,7 +106,7 @@ func TestWalletManager_GetTransactionByWxID(t *testing.T) {
 func TestWalletManager_GetAssetsAccountBalance(t *testing.T) {
 	tm := testInitWalletManager()
 	walletID := "WDMxQukjqS4SAP73Hx9kkPT4eVgTXDjC3r"
-	accountID := "CBGfADJdeDDPKh7wywxDrmkTJzxGjAQJyT4hVD44bvLE"
+	accountID := "DivhZayTBdcPMjWsduwxyyJ4PtZzUZ88MzYD3t6vqvfE"
 	//accountID := "3xLbreE3asBRVCCk13Y9V4NzjyijXdx8sb6k54TmQkFg"
 	balance, err := tm.GetAssetsAccountBalance(testApp, walletID, accountID)
 	if err != nil {
@@ -150,7 +150,6 @@ func TestWalletManager_GetEstimateFeeRate(t *testing.T) {
 	}
 	log.Std.Info("feeRate: %s %s/%s", feeRate, coin.Symbol, unit)
 }
-
 
 func TestGetAddressVerify(t *testing.T) {
 	symbol := "QUORUM"
