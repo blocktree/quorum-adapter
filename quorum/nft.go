@@ -122,7 +122,7 @@ func (decoder *NFTContractDecoder) GetNFTBalanceByAddressBatch(nft []*openwallet
 	return balances, nil
 }
 
-//GetNFTOwnerByTokenID 查询地址token的拥有者
+// GetNFTOwnerByTokenID 查询地址token的拥有者
 func (decoder *NFTContractDecoder) GetNFTOwnerByTokenID(nft *openwallet.NFT) (*openwallet.NFTOwner, *openwallet.Error) {
 
 	if len(nft.TokenID) == 0 {
@@ -153,7 +153,7 @@ func (decoder *NFTContractDecoder) GetNFTOwnerByTokenID(nft *openwallet.NFT) (*o
 
 }
 
-//GetMetaDataOfNFT 查询NFT的MetaData
+// GetMetaDataOfNFT 查询NFT的MetaData
 func (decoder *NFTContractDecoder) GetMetaDataOfNFT(nft *openwallet.NFT) (*openwallet.NFTMetaData, *openwallet.Error) {
 
 	if len(nft.TokenID) == 0 {
@@ -192,7 +192,7 @@ func (decoder *NFTContractDecoder) GetMetaDataOfNFT(nft *openwallet.NFT) (*openw
 
 }
 
-//GetNFTTransfer 从event解析NFT转账信息
+// GetNFTTransfer 从event解析NFT转账信息
 func (decoder *NFTContractDecoder) GetNFTTransfer(event *openwallet.SmartContractEvent) (*openwallet.NFTTransfer, *openwallet.Error) {
 	if event == nil {
 		return nil, openwallet.Errorf(openwallet.ErrSystemException, "SmartContractEvent is nil")
@@ -238,7 +238,7 @@ func (decoder *NFTContractDecoder) GetNFTTransfer(event *openwallet.SmartContrac
 				Token:    event.Contract.Token,
 				Protocol: inferfaceType,
 				Name:     event.Contract.Name,
-				TokenID:  obj.Get("tokenId").String(),
+				TokenID:  obj.Get("id").String(),
 			})
 			amounts = append(amounts, obj.Get("value").String())
 		} else if event.Event == "TransferBatch" {
