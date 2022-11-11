@@ -211,20 +211,23 @@ func (decoder *NFTContractDecoder) GetNFTTransfer(event *openwallet.SmartContrac
 	obj := gjson.ParseBytes([]byte(event.Value))
 	switch inferfaceType {
 	case openwallet.InterfaceTypeERC721:
-		//{"from":"0x1234","to":"0xabcd","tokenId":1414}}
-		operator = obj.Get("from").String()
-		from = obj.Get("from").String()
-		to = obj.Get("to").String()
-		amounts = append(amounts, "1")
-		nfts = append(nfts, openwallet.NFT{
-			Symbol:   event.Contract.Symbol,
-			Address:  event.Contract.Address,
-			Token:    event.Contract.Token,
-			Protocol: inferfaceType,
-			Name:     event.Contract.Name,
-			TokenID:  obj.Get("tokenId").String(),
-		})
-
+		if event.Event == "Transfer" {
+			//{"from":"0x1234","to":"0xabcd","tokenId":1414}}
+			operator = obj.Get("from").String()
+			from = obj.Get("from").String()
+			to = obj.Get("to").String()
+			amounts = append(amounts, "1")
+			nfts = append(nfts, openwallet.NFT{
+				Symbol:   event.Contract.Symbol,
+				Address:  event.Contract.Address,
+				Token:    event.Contract.Token,
+				Protocol: inferfaceType,
+				Name:     event.Contract.Name,
+				TokenID:  obj.Get("tokenId").String(),
+			})
+		} else {
+			return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT event invalid")
+		}
 	case openwallet.InterfaceTypeERC1155:
 
 		operator = obj.Get("operator").String()
@@ -255,6 +258,8 @@ func (decoder *NFTContractDecoder) GetNFTTransfer(event *openwallet.SmartContrac
 				})
 				amounts = append(amounts, values[i].String())
 			}
+		} else {
+			return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT event invalid")
 		}
 
 	default:
