@@ -18,6 +18,7 @@ package quorum
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/tidwall/gjson"
 
 	"github.com/blocktree/go-owcrypt"
 	"github.com/blocktree/openwallet/v2/common"
@@ -903,4 +904,25 @@ func packFixArray(slice []byte, a interface{}) interface{} {
 		a = fixBytes
 	}
 	return a
+}
+
+func (wm *WalletManager) GetBlockchainSyncStatus() (*openwallet.BlockchainSyncStatus, error) {
+
+	result, err := wm.WalletClient.Call("eth_syncing", nil)
+	if err != nil {
+		return nil, err
+	}
+
+	status := &openwallet.BlockchainSyncStatus{}
+
+	if result.IsObject() {
+		obj := gjson.ParseBytes([]byte(result.Raw))
+		status.NetworkBlockHeight, _ = hexutil.DecodeUint64(obj.Get("highestBlock").String())
+		status.CurrentBlockHeight, _ = hexutil.DecodeUint64(obj.Get("currentBlock").String())
+		status.Syncing = true
+	} else {
+		status.Syncing = false
+	}
+
+	return status, nil
 }

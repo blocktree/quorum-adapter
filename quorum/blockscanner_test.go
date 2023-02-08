@@ -109,3 +109,13 @@ func TestBlockScanner_ExtractTransactionAndReceiptData(t *testing.T) {
 		log.Std.Notice("data.ContractTransaction: %+v", keyData)
 	}
 }
+
+func TestBlockScanner_GetBlockchainSyncStatus(t *testing.T) {
+	wm := testNewWalletManager()
+	status, err := wm.GetBlockScanner().GetBlockchainSyncStatus()
+	if err != nil {
+		t.Errorf("GetBlockchainSyncStatus failed, err=%v", err)
+		return
+	}
+	log.Infof("status: %+v", status)
+}

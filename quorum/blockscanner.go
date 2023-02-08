@@ -1138,3 +1138,9 @@ func (bs *BlockScanner) SaveUnscannedTransaction(blockHeight uint64, reason stri
 	unscannedRecord := openwallet.NewUnscanRecord(blockHeight, "", reason, bs.wm.Symbol())
 	return bs.SaveUnscanRecord(unscannedRecord)
 }
+
+// GetBlockchainSyncStatus 获取当前区块链同步状态
+// @optional
+func (bs *BlockScanner) GetBlockchainSyncStatus() (*openwallet.BlockchainSyncStatus, error) {
+	return bs.wm.GetBlockchainSyncStatus()
+}
