@@ -83,8 +83,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		symbol     = "QUORUM"
 		//accountID  = "HgRBsaiKgoVDagwezos496vqKQCh41pY44JbhW65YA8t"
 		addrs = map[string]string{
-			"0x76b932e7ef077eabebe8a5064b99120ec81299ca": "sender",
-			"0x1c63c5c3f5a18cef5e2996a7c41fe933c7e9cffa": "receiver",
+			"0xe39fa96309bf38ff9fc5cd98373f6532639933d7": "sender",
 		}
 	)
 
@@ -100,7 +99,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(28680665)
+	scanner.SetRescanBlockHeight(498070)
 	scanner.Run()
 
 	<-endRunning

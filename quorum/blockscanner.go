@@ -905,6 +905,14 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 		contract        *openwallet.SmartContract
 	)
 
+	// 部署合约的时候to为空
+	if contractAddress == "" {
+		if tx.Receipt != nil && tx.Receipt.ETHReceipt != nil {
+			contractAddress = strings.ToLower(tx.Receipt.ETHReceipt.ContractAddress.String())
+		}
+
+	}
+
 	//查找合约是否存在
 	targetResult := tx.FilterFunc(openwallet.ScanTargetParam{
 		ScanTarget:     contractAddress,
