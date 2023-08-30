@@ -39,17 +39,17 @@ func (sub *subscriberSingle) BlockScanNotify(header *openwallet.BlockHeader) err
 
 // BlockTxExtractDataNotify 区块提取结果通知
 func (sub *subscriberSingle) BlockExtractDataNotify(sourceKey string, data *openwallet.TxExtractData) error {
-	log.Notice("account:", sourceKey)
-
-	for i, input := range data.TxInputs {
-		log.Std.Notice("data.TxInputs[%d]: %+v", i, input)
-	}
-
-	for i, output := range data.TxOutputs {
-		log.Std.Notice("data.TxOutputs[%d]: %+v", i, output)
-	}
-
-	log.Std.Notice("data.Transaction: %+v", data.Transaction)
+	//log.Notice("account:", sourceKey)
+	//
+	//for i, input := range data.TxInputs {
+	//	log.Std.Notice("data.TxInputs[%d]: %+v", i, input)
+	//}
+	//
+	//for i, output := range data.TxOutputs {
+	//	log.Std.Notice("data.TxOutputs[%d]: %+v", i, output)
+	//}
+	//
+	//log.Std.Notice("data.Transaction: %+v", data.Transaction)
 
 	return nil
 }
@@ -57,21 +57,21 @@ func (sub *subscriberSingle) BlockExtractDataNotify(sourceKey string, data *open
 // BlockExtractSmartContractDataNotify 区块提取智能合约交易结果通知
 func (sub *subscriberSingle) BlockExtractSmartContractDataNotify(sourceKey string, data *openwallet.SmartContractReceipt) error {
 
-	log.Notice("sourceKey:", sourceKey)
-	log.Std.Notice("data.ContractTransaction: %+v", data)
-
-	for i, event := range data.Events {
-		log.Std.Notice("data.Events[%d]: %+v", i, event)
-		assetsMgr, err := openw.GetAssetsAdapter(data.Coin.Symbol)
-		if err != nil {
-			log.Error(data.Coin.Symbol, "is not support")
-			return nil
-		}
-		nftTx, _ := assetsMgr.GetNFTContractDecoder().GetNFTTransfer(event)
-		if nftTx != nil {
-			log.Std.Notice("NFT Transfer[%d]: %+v", i, nftTx)
-		}
-	}
+	//log.Notice("sourceKey:", sourceKey)
+	//log.Std.Notice("data.ContractTransaction: %+v", data)
+	//
+	//for i, event := range data.Events {
+	//	log.Std.Notice("data.Events[%d]: %+v", i, event)
+	//	assetsMgr, err := openw.GetAssetsAdapter(data.Coin.Symbol)
+	//	if err != nil {
+	//		log.Error(data.Coin.Symbol, "is not support")
+	//		return nil
+	//	}
+	//	nftTx, _ := assetsMgr.GetNFTContractDecoder().GetNFTTransfer(event)
+	//	if nftTx != nil {
+	//		log.Std.Notice("NFT Transfer[%d]: %+v", i, nftTx)
+	//	}
+	//}
 
 	return nil
 }
@@ -80,7 +80,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 
 	var (
 		endRunning = make(chan bool, 1)
-		symbol     = "QUORUM"
+		symbol     = ChainSymbol
 		//accountID  = "HgRBsaiKgoVDagwezos496vqKQCh41pY44JbhW65YA8t"
 		addrs = map[string]string{
 			"0x76b932e7ef077eabebe8a5064b99120ec81299ca": "sender",
@@ -100,7 +100,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(28680665)
+	//scanner.SetRescanBlockHeight(46927223)
 	scanner.Run()
 
 	<-endRunning
@@ -109,13 +109,13 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 func TestBlockScanner_ExtractTransactionAndReceiptData(t *testing.T) {
 
 	var (
-		symbol = "QUORUM"
+		symbol = ChainSymbol
 		addrs  = make(map[string]openwallet.ScanTargetResult)
-		txid   = "0xe58afcee4a01ff223cae67918232454f0fcafd986ef7767aa252474558876cdd"
+		txid   = "0x52385471c52d71090e1d8207a352782bf63302548d6caca8df1c6befbb891d9d"
 	)
 	//724f6bdc92705714b251fdfe205b952f71c1b25dac823eb448ff509b43ca2005
 	contract := &openwallet.SmartContract{
-		Symbol:   "QUORUM",
+		Symbol:   ChainSymbol,
 		Address:  "0x5babc381c7e9edcf02654a9c30d384dfe54dd4a1",
 		Decimals: 2,
 	}
@@ -183,12 +183,12 @@ func TestSubscribeAddress_Contract(t *testing.T) {
 
 	var (
 		endRunning = make(chan bool, 1)
-		symbol     = "QUORUM"
+		symbol     = ChainSymbol
 		addrs      = make(map[string]openwallet.ScanTargetResult)
 	)
 
 	contract := &openwallet.SmartContract{
-		Symbol:     "QUORUM",
+		Symbol:     ChainSymbol,
 		Address:    "0x550cdb1020046b3115a4f8ccebddfb28b66beb27",
 		Decimals:   2,
 		ContractID: "dl8WD7bM7xk4ZxRybuHCo3JDDtZn2ugPusapoKnQEWA=",

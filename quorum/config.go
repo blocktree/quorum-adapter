@@ -51,6 +51,10 @@ type WalletConfig struct {
 	NonceComputeMode int64
 	//Broadcast node RPC API
 	BroadcastAPI string
+	// Use QuickNode Single Flight RPC
+	UseQNSingleFlightRPC int64
+	// Detect unknown contracts
+	DetectUnknownContracts int64
 }
 
 func NewConfig(symbol string) *WalletConfig {
@@ -60,7 +64,7 @@ func NewConfig(symbol string) *WalletConfig {
 	return &c
 }
 
-//创建文件夹
+// 创建文件夹
 func (wc *WalletConfig) makeDataDir() {
 
 	if len(wc.DataDir) == 0 {

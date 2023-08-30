@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	ChainSymbol = "QUORUM"
+	//ChainSymbol = "QUORUM"
+	ChainSymbol = "MATIC"
 )
 
 func init() {

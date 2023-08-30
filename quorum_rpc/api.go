@@ -15,20 +15,49 @@
 package quorum_rpc
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/blocktree/openwallet/v2/log"
+	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/imroc/req"
 	"github.com/tidwall/gjson"
 )
 
 type Client struct {
-	BaseURL string
+	context context.Context
+
+	BaseURL      string
 	BroadcastURL string
-	Debug   bool
+	Debug        bool
+	RawClient    *rpc.Client //原生ETH客户端
+}
+
+func Dial(baseURL, broadcastURL string, debug bool) (*Client, error) {
+	context := context.Background()
+	client := &Client{BaseURL: baseURL, BroadcastURL: broadcastURL, Debug: debug}
+	rawClient, err := rpc.DialContext(context, baseURL)
+	if err != nil {
+		return nil, err
+	}
+	client.RawClient = rawClient
+	client.context = context
+	return client, nil
 }
 
 func (c *Client) Call(method string, params []interface{}) (*gjson.Result, error) {
+
+	if method == "eth_sendRawTransaction" && len(c.BroadcastURL) != 0 {
+		// 广播交易使用BroadcastURL的节点
+		return c.callByHttpClient(c.BroadcastURL, method, params)
+	} else {
+		//return c.callByETHClient(method, params)
+		return c.callByHttpClient(c.BaseURL, method, params)
+	}
+}
+
+func (c *Client) callByHttpClient(url, method string, params []interface{}) (*gjson.Result, error) {
 	authHeader := req.Header{
 		"Accept":       "application/json",
 		"Content-Type": "application/json",
@@ -38,12 +67,6 @@ func (c *Client) Call(method string, params []interface{}) (*gjson.Result, error
 	body["id"] = 1
 	body["method"] = method
 	body["params"] = params
-
-	url := c.BaseURL
-	if method == "eth_sendRawTransaction" && len(c.BroadcastURL) != 0 {
-		// 广播交易使用BroadcastURL的节点
-		url = c.BroadcastURL
-	}
 
 	r, err := req.Post(url, req.BodyJSON(&body), authHeader)
 
@@ -66,7 +89,25 @@ func (c *Client) Call(method string, params []interface{}) (*gjson.Result, error
 	return &result, nil
 }
 
-//isError 是否报错
+func (c *Client) callByETHClient(method string, params []interface{}) (*gjson.Result, error) {
+
+	var res interface{}
+	err := c.RawClient.CallContext(c.context, &res, method, params...)
+	if err != nil {
+		return nil, err
+	}
+
+	r, _ := json.Marshal(map[string]interface{}{
+		"result": res,
+	})
+
+	resp := gjson.ParseBytes(r)
+	result := resp.Get("result")
+
+	return &result, nil
+}
+
+// isError 是否报错
 func isError(result *gjson.Result) error {
 	var (
 		err error

@@ -206,6 +206,9 @@ func (decoder *NFTContractDecoder) GetNFTTransfer(event *openwallet.SmartContrac
 		amounts   = make([]string, 0)
 		eventType = openwallet.NFTEventTypeTransferred
 	)
+
+	//检查是否有转账事件
+
 	// 检查合约是否支持nft协议
 	inferfaceType := decoder.wm.SupportsInterface(event.Contract.Address)
 	obj := gjson.ParseBytes([]byte(event.Value))

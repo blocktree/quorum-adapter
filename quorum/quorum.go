@@ -24,46 +24,47 @@ import (
 	"math/big"
 )
 
-//FullName 币种全名
+// FullName 币种全名
 func (wm *WalletManager) FullName() string {
 	return "quorum"
 }
 
-//CurveType 曲线类型
+// CurveType 曲线类型
 func (wm *WalletManager) CurveType() uint32 {
 	return wm.Config.CurveType
 }
 
-//Symbol 币种标识
+// Symbol 币种标识
 func (wm *WalletManager) Symbol() string {
 	return wm.Config.Symbol
 }
 
-//小数位精度
+// 小数位精度
 func (wm *WalletManager) Decimal() int32 {
 	return 18
 }
 
-//AddressDecode 地址解析器
+// AddressDecode 地址解析器
 func (wm *WalletManager) GetAddressDecoderV2() openwallet.AddressDecoderV2 {
 	return wm.Decoder
 }
 
-//TransactionDecoder 交易单解析器
+// TransactionDecoder 交易单解析器
 func (wm *WalletManager) GetTransactionDecoder() openwallet.TransactionDecoder {
 	return wm.TxDecoder
 }
 
-//GetBlockScanner 获取区块链
+// GetBlockScanner 获取区块链
 func (wm *WalletManager) GetBlockScanner() openwallet.BlockScanner {
 	return wm.Blockscanner
 }
 
-//LoadAssetsConfig 加载外部配置
+// LoadAssetsConfig 加载外部配置
 func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	wm.Config.ServerAPI = c.String("serverAPI")
 	wm.Config.BroadcastAPI = c.String("broadcastAPI")
-	client := &quorum_rpc.Client{BaseURL: wm.Config.ServerAPI, BroadcastURL: wm.Config.BroadcastAPI, Debug: false}
+	//client := &quorum_rpc.Client{BaseURL: wm.Config.ServerAPI, BroadcastURL: wm.Config.BroadcastAPI, Debug: false}
+	client, _ := quorum_rpc.Dial(wm.Config.ServerAPI, wm.Config.BroadcastAPI, false)
 	wm.WalletClient = client
 	wm.Config.DataDir = c.String("dataDir")
 	fixGasLimit := c.String("fixGasLimit")
@@ -76,6 +77,8 @@ func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	wm.Config.OffsetsGasPrice = new(big.Int)
 	wm.Config.OffsetsGasPrice.SetString(offsetsGasPrice, 10)
 	wm.Config.NonceComputeMode, _ = c.Int64("nonceComputeMode")
+	wm.Config.UseQNSingleFlightRPC, _ = c.Int64("useQNSingleFlightRPC")
+	wm.Config.DetectUnknownContracts, _ = c.Int64("detectUnknownContracts")
 
 	//数据文件夹
 	wm.Config.makeDataDir()
@@ -88,26 +91,27 @@ func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 		wm.Config.ChainID = uint64(chainID)
 	}
 
-	wm.RawClient, err = ethclient.Dial(wm.Config.ServerAPI)
-	if err != nil {
-		return err
-	}
+	wm.RawClient = ethclient.NewClient(client.RawClient)
+	//wm.RawClient, err = ethclient.Dial(wm.Config.ServerAPI)
+	//if err != nil {
+	//	return err
+	//}
 
 	return nil
 
 }
 
-//InitAssetsConfig 初始化默认配置
+// InitAssetsConfig 初始化默认配置
 func (wm *WalletManager) InitAssetsConfig() (config.Configer, error) {
 	return config.NewConfigData("ini", []byte(""))
 }
 
-//GetAssetsLogger 获取资产账户日志工具
+// GetAssetsLogger 获取资产账户日志工具
 func (wm *WalletManager) GetAssetsLogger() *log.OWLogger {
 	return wm.Log
 }
 
-//GetSmartContractDecoder 获取智能合约解析器
+// GetSmartContractDecoder 获取智能合约解析器
 func (wm *WalletManager) GetSmartContractDecoder() openwallet.SmartContractDecoder {
 	return wm.ContractDecoder
 }
@@ -116,8 +120,8 @@ func (wm *WalletManager) BalanceModelType() openwallet.BalanceModelType {
 	return openwallet.BalanceModelTypeAddress
 }
 
-//GetNFTContractDecoder 获取NFT智能合约解析器
-//@optional
+// GetNFTContractDecoder 获取NFT智能合约解析器
+// @optional
 func (wm *WalletManager) GetNFTContractDecoder() openwallet.NFTContractDecoder {
 	return wm.NFTContractDecoder
 }

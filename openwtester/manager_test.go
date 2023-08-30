@@ -22,7 +22,7 @@ func testInitWalletManager() *openw.WalletManager {
 	tc.EnableBlockScan = false
 	tc.SupportAssets = []string{
 		ChainSymbol,
-		//"QUORUM",
+		//ChainSymbol,
 	}
 	return openw.NewWalletManager(tc)
 	//tm.Init()
@@ -76,7 +76,7 @@ func TestWalletManager_CreateAssetsAccount(t *testing.T) {
 	tm := testInitWalletManager()
 
 	walletID := "W84oLnUb3P8vAGV73RtA3QHtXdLTTaG1Pk"
-	account := &openwallet.AssetsAccount{Alias: "admin", WalletID: walletID, Required: 1, Symbol: "QUORUM", IsTrust: true}
+	account := &openwallet.AssetsAccount{Alias: "admin", WalletID: walletID, Required: 1, Symbol: ChainSymbol, IsTrust: true}
 	account, address, err := tm.CreateAssetsAccount(testApp, walletID, "12345678", account, nil)
 	if err != nil {
 		log.Error(err)

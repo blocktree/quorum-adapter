@@ -31,17 +31,18 @@ import (
 const (
 	//BLOCK_CHAIN_BUCKET = "blockchain" //区块链数据集合
 	//periodOfTask      = 5 * time.Second //定时任务执行隔间
-	MAX_EXTRACTING_SIZE = 15 //并发的扫描线程数
+	MAX_EXTRACTING_SIZE = 20 //并发的扫描线程数
 
 )
 
 type BlockScanner struct {
 	*openwallet.BlockScannerBase
-	CurrentBlockHeight   uint64         //当前区块高度
-	extractingCH         chan struct{}  //扫描工作令牌
-	wm                   *WalletManager //钱包管理者
-	IsScanMemPool        bool           //是否扫描交易池
-	RescanLastBlockCount uint64         //重扫上N个区块数量
+	CurrentBlockHeight   uint64                               //当前区块高度
+	extractingCH         chan struct{}                        //扫描工作令牌
+	wm                   *WalletManager                       //钱包管理者
+	IsScanMemPool        bool                                 //是否扫描交易池
+	RescanLastBlockCount uint64                               //重扫上N个区块数量
+	logContractsMap      map[string]*openwallet.SmartContract //纪录合约信息避免重复查找合约ABI
 }
 
 // ExtractResult 扫描完成的提取结果
@@ -70,6 +71,7 @@ func NewBlockScanner(wm *WalletManager) *BlockScanner {
 	bs.wm = wm
 	bs.IsScanMemPool = false
 	bs.RescanLastBlockCount = 0
+	bs.logContractsMap = make(map[string]*openwallet.SmartContract)
 
 	//设置扫描任务
 	bs.SetTask(bs.ScanBlockTask)
@@ -457,6 +459,11 @@ func (bs *BlockScanner) UpdateTxByReceipt(tx *BlockTransaction) error {
 		return nil
 	}
 
+	//如果GetBlockNum时已经解析了Receipt就不单独处理
+	if tx.Receipt != nil {
+		return nil
+	}
+
 	//获取交易回执
 	txReceipt, err := bs.wm.GetTransactionReceipt(tx.Hash)
 	if err != nil {
@@ -763,30 +770,29 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 	contractAddress = bs.wm.CustomAddressEncodeFunc(contractAddress)
 	contractId := openwallet.GenContractID(bs.wm.Symbol(), contractAddress)
 
-	bc := bind.NewBoundContract(ethcom.HexToAddress(contractAddress), ERC20_ABI, bs.wm.RawClient, bs.wm.RawClient, nil)
-	bc.Call(&bind.CallOpts{}, &out, "name")
-	if out != nil && len(out) > 0 {
-		tokenName = common.NewString(out[0]).String()
-		out = nil
-	}
+	// 读取缓存是否已记录合约信息
+	logContract := bs.logContractsMap[contractAddress]
+	if logContract == nil {
+		bc := bind.NewBoundContract(ethcom.HexToAddress(contractAddress), ERC20_ABI, bs.wm.RawClient, bs.wm.RawClient, nil)
+		bc.Call(&bind.CallOpts{}, &out, "name")
+		if out != nil && len(out) > 0 {
+			tokenName = common.NewString(out[0]).String()
+			out = nil
+		}
 
-	bc.Call(&bind.CallOpts{}, &out, "symbol")
-	if out != nil && len(out) > 0 {
-		tokenSymbol = common.NewString(out[0]).String()
-		out = nil
-	}
+		bc.Call(&bind.CallOpts{}, &out, "symbol")
+		if out != nil && len(out) > 0 {
+			tokenSymbol = common.NewString(out[0]).String()
+			out = nil
+		}
 
-	bc.Call(&bind.CallOpts{}, &out, "decimals")
-	if out != nil && len(out) > 0 {
-		tokenDecimals = common.NewString(out[0]).UInt8()
-		out = nil
-	}
+		bc.Call(&bind.CallOpts{}, &out, "decimals")
+		if out != nil && len(out) > 0 {
+			tokenDecimals = common.NewString(out[0]).UInt8()
+			out = nil
+		}
 
-	coin := openwallet.Coin{
-		Symbol:     bs.wm.Symbol(),
-		IsContract: true,
-		ContractID: contractId,
-		Contract: openwallet.SmartContract{
+		logContract = &openwallet.SmartContract{
 			ContractID: contractId,
 			Symbol:     bs.wm.Symbol(),
 			Address:    contractAddress,
@@ -794,7 +800,15 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 			Protocol:   openwallet.InterfaceTypeERC20,
 			Name:       tokenName,
 			Decimals:   uint64(tokenDecimals),
-		},
+		}
+
+	}
+
+	coin := openwallet.Coin{
+		Symbol:     bs.wm.Symbol(),
+		IsContract: true,
+		ContractID: contractId,
+		Contract:   *logContract,
 	}
 
 	//提取出账部分记录
@@ -940,7 +954,7 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 	createAt := time.Now().Unix()
 
 	//纪录合约信息避免重复查找合约ABI
-	logContractsMap := make(map[string]*openwallet.SmartContract)
+	//logContractsMap := make(map[string]*openwallet.SmartContract)
 
 	//迭代每个日志，提取时间日志
 	events := make([]*openwallet.SmartContractEvent, 0)
@@ -950,7 +964,7 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 			logContract        *openwallet.SmartContract
 		)
 
-		logContract = logContractsMap[logContractAddress]
+		logContract = bs.logContractsMap[logContractAddress]
 		//合约信息不在内存，查找外部数据源
 		if logContract == nil {
 			logTargetResult := tx.FilterFunc(openwallet.ScanTargetParam{
@@ -966,8 +980,11 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 				}
 				logContract = logContractExisted
 			} else {
-				// 检查是否属于系统默认支持的erc协议类型
-				logContract = bs.wm.LoadContractInfo(logContractAddress)
+				// DetectUnknownContracts = 1, 开启探测未知合约
+				if bs.wm.Config.DetectUnknownContracts == 1 {
+					// 检查是否属于系统默认支持的erc协议类型
+					logContract = bs.wm.LoadContractInfo(logContractAddress)
+				}
 			}
 
 		}
@@ -976,7 +993,7 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 		if logContract == nil || len(logContract.GetABI()) == 0 {
 			continue
 		}
-		logContractsMap[logContractAddress] = logContract
+		bs.logContractsMap[logContractAddress] = logContract
 
 		abiInstance, logErr := abi.JSON(strings.NewReader(logContract.GetABI()))
 		if logErr != nil {

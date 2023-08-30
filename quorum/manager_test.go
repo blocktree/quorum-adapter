@@ -84,13 +84,11 @@ func TestWalletManager_SetNetworkChainID(t *testing.T) {
 
 func TestWalletManager_EncodeABIParam(t *testing.T) {
 	wm := testNewWalletManager()
-	abiJSON := `[{"inputs":[{"internalType":"uint256","name":"amountIn","type":"uint256"},{"internalType":"uint256","name":"amountOutMin","type":"uint256"},{"internalType":"address[]","name":"path","type":"address[]"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"deadline","type":"uint256"}],"name":"swapExactTokensForTokens","outputs":[{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"stateMutability":"nonpayable","type":"function"}]`
-	method := "swapExactTokensForTokens"
-	amountIn := "10000"
-	amountOutMin := "20040885242236945"
-	path := "dac17f958d2ee523a2206206994597c13d831ec7,c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2,e3ec0395086da2dbd74c7f637b8fbb1d5d729f40"
-	to := "666a655bce333517797da2e4442f141d66b888"
-	deadline := "1598431552"
+	abiJSON := `[{"inputs":[],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"address","name":"spender","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Approval","type":"event"},{"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"from","type":"address"},{"indexed":true,"internalType":"address","name":"to","type":"address"},{"indexed":false,"internalType":"uint256","name":"value","type":"uint256"}],"name":"Transfer","type":"event"},{"constant":true,"inputs":[],"name":"DOMAIN_SEPARATOR","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"PERMIT_TYPEHASH","outputs":[{"internalType":"bytes32","name":"","type":"bytes32"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"},{"internalType":"address","name":"","type":"address"}],"name":"allowance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"approve","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"balanceOf","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"name","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"owner","type":"address"},{"internalType":"address","name":"spender","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"permit","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":true,"inputs":[],"name":"symbol","outputs":[{"internalType":"string","name":"","type":"string"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":true,"inputs":[],"name":"totalSupply","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"view","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transfer","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"address","name":"from","type":"address"},{"internalType":"address","name":"to","type":"address"},{"internalType":"uint256","name":"value","type":"uint256"}],"name":"transferFrom","outputs":[{"internalType":"bool","name":"","type":"bool"}],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
+	method := "transfer"
+
+	to := "0x8C178b782fab1d0686D88bC16B31F80431098fa1"
+	amount := "102300"
 
 	abiInstance, err := abi.JSON(strings.NewReader(abiJSON))
 	if err != nil {
@@ -98,7 +96,7 @@ func TestWalletManager_EncodeABIParam(t *testing.T) {
 		return
 	}
 
-	data, err := wm.EncodeABIParam(abiInstance, method, amountIn, amountOutMin, path, to, deadline)
+	data, err := wm.EncodeABIParam(abiInstance, method, to, amount)
 	if err != nil {
 		t.Errorf("EncodeABIParam error: %v", err)
 		return
@@ -227,4 +225,30 @@ func TestWalletManager_DecodeReceiptLogResult(t *testing.T) {
 	log.Infof("rMap: %+v", rMap)
 	log.Infof("name: %+v", name)
 	log.Infof("rJSON: %s", rJSON)
+}
+
+func TestWalletManager_GetBlockWithReceipts(t *testing.T) {
+	wm := testNewWalletManager()
+	_, err := wm.GetQNBlockWithReceipts(46918227)
+	if err != nil {
+		t.Errorf("GetTransactionCount error: %v", err)
+		return
+	}
+	//log.Infof("result: %v", result.Raw)
+}
+
+func TestWalletManager_GetBlockByNum(t *testing.T) {
+	wm := testNewWalletManager()
+	block, err := wm.GetBlockByNum(46918227, true)
+	if err != nil {
+		t.Errorf("GetTransactionCount error: %v", err)
+		return
+	}
+	for i, tx := range block.Transactions {
+		if tx.Receipt == nil {
+			log.Infof("tx.Receipt[%d]: nil", i)
+			return
+		}
+		log.Infof("tx.Receipt[%d]: %+v", i, tx.Receipt)
+	}
 }

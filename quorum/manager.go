@@ -152,7 +152,7 @@ func (wm *WalletManager) GetTransactionByHash(txid string) (*BlockTransaction, e
 	return &tx, nil
 }
 
-func (wm *WalletManager) GetBlockByNum(blockNum uint64, showTransactionSpec bool) (*EthBlock, error) {
+func (wm *WalletManager) GetETHBlockByNum(blockNum uint64, showTransactionSpec bool) (*EthBlock, error) {
 	params := []interface{}{
 		hexutil.EncodeUint64(blockNum),
 		showTransactionSpec,
@@ -177,6 +177,14 @@ func (wm *WalletManager) GetBlockByNum(blockNum uint64, showTransactionSpec bool
 		return nil, err
 	}
 	return &ethBlock, nil
+}
+
+func (wm *WalletManager) GetBlockByNum(blockNum uint64, showTransactionSpec bool) (*EthBlock, error) {
+	if wm.Config.UseQNSingleFlightRPC == 1 && showTransactionSpec {
+		return wm.GetQNBlockWithReceipts(blockNum)
+	}
+
+	return wm.GetETHBlockByNum(blockNum, showTransactionSpec)
 }
 
 func (wm *WalletManager) RecoverUnscannedTransactions(unscannedTxs []*openwallet.UnscanRecord) ([]*BlockTransaction, error) {
@@ -925,4 +933,45 @@ func (wm *WalletManager) GetBlockchainSyncStatus() (*openwallet.BlockchainSyncSt
 	}
 
 	return status, nil
+}
+
+// GetQNBlockWithReceipts
+func (wm *WalletManager) GetQNBlockWithReceipts(blockNum uint64) (*EthBlock, error) {
+	params := []interface{}{
+		hexutil.EncodeUint64(blockNum),
+	}
+	result, err := wm.WalletClient.Call("qn_getBlockWithReceipts", params)
+	if err != nil {
+		return nil, err
+	}
+	var ethBlock EthBlock
+	err = json.Unmarshal([]byte(result.Get("block").Raw), &ethBlock)
+	if err != nil {
+		return nil, err
+	}
+	ethBlock.BlockHeight, err = hexutil.DecodeUint64(ethBlock.BlockNumber)
+	if err != nil {
+		return nil, err
+	}
+
+	// parsing receipt
+	receiptsMap := make(map[string]*TransactionReceipt, 0)
+	receipts := result.Get("receipts").Array()
+	if receipts != nil && len(receipts) > 0 {
+		for _, receipt := range receipts {
+			var ethReceipt types.Receipt
+			err = ethReceipt.UnmarshalJSON([]byte(receipt.Raw))
+			if err != nil {
+				return nil, err
+			}
+			receiptsMap[ethReceipt.TxHash.String()] = &TransactionReceipt{ETHReceipt: &ethReceipt, Raw: receipt.Raw}
+		}
+
+		for _, tx := range ethBlock.Transactions {
+			txReceipt := receiptsMap[tx.Hash]
+			tx.Receipt = txReceipt
+		}
+	}
+
+	return &ethBlock, nil
 }
