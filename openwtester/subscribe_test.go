@@ -82,14 +82,32 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		endRunning = make(chan bool, 1)
 		symbol     = ChainSymbol
 		//accountID  = "HgRBsaiKgoVDagwezos496vqKQCh41pY44JbhW65YA8t"
-		addrs = map[string]string{
-			"0xb2d8d0dd1ff50994f18e29d0478f86c400cf001b": "sender",
-		}
+		addrs = make(map[string]openwallet.ScanTargetResult)
 	)
 
+	contract := &openwallet.SmartContract{
+		Symbol:   ChainSymbol,
+		Address:  "0x7ceb23fd6bc0add59e62ac25578270cff1b9f619",
+		Token:    "WETH",
+		Name:     "Wrapped Ether",
+		Decimals: 18,
+	}
+	contract.ContractID = openwallet.GenContractID(contract.Symbol, contract.Address)
+
+	addrs[contract.Address] = openwallet.ScanTargetResult{SourceKey: contract.ContractID, Exist: true, TargetInfo: contract}
+	addrs["0xd6b8ec0775abdce1e385c763b71eacff3991bad7"] = openwallet.ScanTargetResult{
+		SourceKey:  "receiver",
+		Exist:      true,
+		TargetInfo: nil,
+	}
+
 	scanTargetFunc := func(target openwallet.ScanTargetParam) openwallet.ScanTargetResult {
-		sourceKey, ok := addrs[target.ScanTarget]
-		return openwallet.ScanTargetResult{SourceKey: sourceKey, Exist: ok, TargetInfo: nil}
+		if target.ScanTargetType == openwallet.ScanTargetTypeContractAddress {
+			return addrs[target.ScanTarget]
+		} else if target.ScanTargetType == openwallet.ScanTargetTypeAccountAddress {
+			return addrs[target.ScanTarget]
+		}
+		return openwallet.ScanTargetResult{SourceKey: "", Exist: false, TargetInfo: nil}
 	}
 
 	scanner := testBlockScanner(symbol)
@@ -99,7 +117,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(46958657)
+	scanner.SetRescanBlockHeight(46968600)
 	scanner.Run()
 
 	<-endRunning

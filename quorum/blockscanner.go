@@ -763,22 +763,36 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 
 	var logContract *openwallet.SmartContract
 
-	if bs.wm.Config.DetectUnknownContracts == 1 {
-		// 读取缓存是否已记录合约信息
-		logContract = bs.logContractsMap[contractAddress]
-		if logContract == nil {
-			logContract, _ = bs.wm.GetSmartContractDecoder().GetTokenMetadata(contractAddress)
-			bs.logContractsMap[contractAddress] = logContract
+	logTargetResult := tx.FilterFunc(openwallet.ScanTargetParam{
+		ScanTarget:     contractAddress,
+		Symbol:         bs.wm.Symbol(),
+		ScanTargetType: openwallet.ScanTargetTypeContractAddress})
+	if logTargetResult.Exist {
+		logContractExisted, logOk := logTargetResult.TargetInfo.(*openwallet.SmartContract)
+		if logOk {
+			logContract = logContractExisted
 		}
-	} else {
-		logContract = &openwallet.SmartContract{
-			ContractID: contractId,
-			Symbol:     bs.wm.Symbol(),
-			Address:    contractAddress,
-			Token:      "",
-			Protocol:   openwallet.InterfaceTypeERC20,
-			Name:       "",
-			Decimals:   uint64(0),
+
+	}
+	//本地数据库没有信息，进行链上获取信息
+	if logContract == nil {
+		if bs.wm.Config.DetectUnknownContracts == 1 {
+			// 读取缓存是否已记录合约信息
+			logContract = bs.logContractsMap[contractAddress]
+			if logContract == nil {
+				logContract, _ = bs.wm.GetSmartContractDecoder().GetTokenMetadata(contractAddress)
+				bs.logContractsMap[contractAddress] = logContract
+			}
+		} else {
+			logContract = &openwallet.SmartContract{
+				ContractID: contractId,
+				Symbol:     bs.wm.Symbol(),
+				Address:    contractAddress,
+				Token:      "",
+				Protocol:   openwallet.InterfaceTypeERC20,
+				Name:       "",
+				Decimals:   uint64(0),
+			}
 		}
 	}
 
