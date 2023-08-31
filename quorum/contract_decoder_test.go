@@ -16,6 +16,7 @@
 package quorum
 
 import (
+	"github.com/blocktree/openwallet/v2/log"
 	"github.com/blocktree/openwallet/v2/openwallet"
 	"testing"
 )
@@ -39,4 +40,15 @@ func TestWalletManager_GetTokenBalanceByAddress(t *testing.T) {
 	for _, b := range tokenBalances {
 		t.Logf("token balance: %+v", b.Balance)
 	}
+}
+
+func TestWalletManager_GetTokenMetadata(t *testing.T) {
+	wm := testNewWalletManager()
+
+	tokenData, err := wm.ContractDecoder.GetTokenMetadata("0x7ceb23fd6bc0add59e62ac25578270cff1b9f619")
+	if err != nil {
+		t.Errorf("GetTokenMetadata unexpected error: %v", err)
+		return
+	}
+	log.Infof("token metadata: %+v", tokenData)
 }

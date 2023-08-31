@@ -11,6 +11,7 @@ import (
 	"github.com/blocktree/openwallet/v2/log"
 	"github.com/blocktree/openwallet/v2/openwallet"
 	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	ethcom "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/types"
@@ -202,7 +203,7 @@ func (decoder *EthContractDecoder) GetAssetsAccountDefAddress(wrapper openwallet
 	return addresses[0], nil
 }
 
-//调用合约ABI方法
+// 调用合约ABI方法
 func (decoder *EthContractDecoder) CallSmartContractABI(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) (*openwallet.SmartContractCallResult, *openwallet.Error) {
 
 	callMsg, abiInstance, encErr := decoder.EncodeRawTransactionCallMsg(wrapper, rawTx)
@@ -240,7 +241,7 @@ func (decoder *EthContractDecoder) CallSmartContractABI(wrapper openwallet.Walle
 	return callResult, nil
 }
 
-//创建原始交易单
+// 创建原始交易单
 func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) *openwallet.Error {
 
 	var (
@@ -344,7 +345,7 @@ func (decoder *EthContractDecoder) CreateSmartContractRawTransaction(wrapper ope
 	return nil
 }
 
-//SubmitRawTransaction 广播交易单
+// SubmitRawTransaction 广播交易单
 func (decoder *EthContractDecoder) SubmitSmartContractRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) (*openwallet.SmartContractReceipt, *openwallet.Error) {
 
 	err := decoder.VerifyRawTransaction(wrapper, rawTx)
@@ -482,7 +483,7 @@ func (decoder *EthContractDecoder) SubmitSmartContractRawTransaction(wrapper ope
 	return owtx, nil
 }
 
-//VerifyRawTransaction 验证交易单，验证交易单并返回加入签名后的交易单
+// VerifyRawTransaction 验证交易单，验证交易单并返回加入签名后的交易单
 func (decoder *EthContractDecoder) VerifyRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.SmartContractRawTransaction) error {
 
 	if rawTx.Signatures == nil || len(rawTx.Signatures) == 0 {
@@ -521,4 +522,68 @@ func (decoder *EthContractDecoder) VerifyRawTransaction(wrapper openwallet.Walle
 	}
 
 	return nil
+}
+
+// GetTokenMetadata 根据合约地址查询token元数据
+func (decoder *EthContractDecoder) GetTokenMetadata(contract string) (*openwallet.SmartContract, error) {
+
+	var (
+		tokenName     string
+		tokenSymbol   string
+		tokenDecimals uint8
+		out           []interface{}
+		contractInfo  *openwallet.SmartContract
+	)
+
+	contractAddress := decoder.wm.CustomAddressEncodeFunc(contract)
+	contractId := openwallet.GenContractID(decoder.wm.Symbol(), contractAddress)
+
+	if decoder.wm.Config.UseQNSingleFlightRPC == 1 {
+
+		params := []interface{}{
+			map[string]interface{}{
+				"contract": contract,
+			},
+		}
+		result, err := decoder.wm.WalletClient.Call("qn_getTokenMetadataByContractAddress", params)
+		if err == nil {
+			tokenName = result.Get("name").String()
+			tokenSymbol = result.Get("symbol").String()
+			tokenDecimals = uint8(result.Get("decimals").Uint())
+		}
+
+	} else {
+		//erc20
+		bc := bind.NewBoundContract(ethcom.HexToAddress(contractAddress), ERC20_ABI, decoder.wm.RawClient, decoder.wm.RawClient, nil)
+		bc.Call(&bind.CallOpts{}, &out, "name")
+		if out != nil && len(out) > 0 {
+			tokenName = common.NewString(out[0]).String()
+			out = nil
+		}
+
+		bc.Call(&bind.CallOpts{}, &out, "symbol")
+		if out != nil && len(out) > 0 {
+			tokenSymbol = common.NewString(out[0]).String()
+			out = nil
+		}
+
+		bc.Call(&bind.CallOpts{}, &out, "decimals")
+		if out != nil && len(out) > 0 {
+			tokenDecimals = common.NewString(out[0]).UInt8()
+			out = nil
+		}
+
+	}
+
+	contractInfo = &openwallet.SmartContract{
+		ContractID: contractId,
+		Symbol:     decoder.wm.Symbol(),
+		Address:    contractAddress,
+		Token:      tokenSymbol,
+		Protocol:   openwallet.InterfaceTypeERC20,
+		Name:       tokenName,
+		Decimals:   uint64(tokenDecimals),
+	}
+
+	return contractInfo, nil
 }

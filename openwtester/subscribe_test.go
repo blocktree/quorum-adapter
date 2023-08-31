@@ -49,7 +49,7 @@ func (sub *subscriberSingle) BlockExtractDataNotify(sourceKey string, data *open
 	//	log.Std.Notice("data.TxOutputs[%d]: %+v", i, output)
 	//}
 	//
-	log.Std.Notice("data.Transaction: %+v", data.Transaction)
+	//log.Std.Notice("data.Transaction: %+v", data.Transaction)
 
 	return nil
 }
@@ -57,8 +57,8 @@ func (sub *subscriberSingle) BlockExtractDataNotify(sourceKey string, data *open
 // BlockExtractSmartContractDataNotify 区块提取智能合约交易结果通知
 func (sub *subscriberSingle) BlockExtractSmartContractDataNotify(sourceKey string, data *openwallet.SmartContractReceipt) error {
 
-	log.Notice("sourceKey:", sourceKey)
-	log.Std.Notice("data.ContractTransaction: %+v", data)
+	//log.Notice("sourceKey:", sourceKey)
+	//log.Std.Notice("data.ContractTransaction: %+v", data)
 	//
 	//for i, event := range data.Events {
 	//	log.Std.Notice("data.Events[%d]: %+v", i, event)

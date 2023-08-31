@@ -617,6 +617,7 @@ func (wm *WalletManager) LoadContractInfo(addr string) *openwallet.SmartContract
 		abiJSON  = ""
 		token    = ""
 		name     = ""
+		decimals = uint64(0)
 	)
 	inferfaceType := wm.SupportsInterface(addr)
 	switch inferfaceType {
@@ -628,7 +629,18 @@ func (wm *WalletManager) LoadContractInfo(addr string) *openwallet.SmartContract
 		abiJSON = ERC1155_ABI_JSON
 		abiInst = ERC1155_ABI
 	default:
-		return nil
+
+		result, err := wm.CallABI(addr, ERC20_ABI, "decimals")
+		if err == nil {
+			v, ok := result[""].(uint64)
+			if ok {
+				abiJSON = ERC20_ABI_JSON
+				abiInst = ERC20_ABI
+				decimals = v
+			}
+		} else {
+			return nil
+		}
 	}
 
 	result, err := wm.CallABI(addr, abiInst, "symbol")
@@ -651,7 +663,7 @@ func (wm *WalletManager) LoadContractInfo(addr string) *openwallet.SmartContract
 		ContractID: contractId,
 		Symbol:     wm.Symbol(),
 		Address:    addr,
-		Decimals:   0,
+		Decimals:   decimals,
 		Token:      token,
 		Name:       name,
 		Protocol:   inferfaceType,
@@ -977,4 +989,9 @@ func (wm *WalletManager) GetQNBlockWithReceipts(blockNum uint64) (*EthBlock, err
 	}
 
 	return &ethBlock, nil
+}
+
+func (wm *WalletManager) GetTokenMetadataByContractAddress(contract string) error {
+	//qn_getTokenMetadataByContractAddress
+	return nil
 }

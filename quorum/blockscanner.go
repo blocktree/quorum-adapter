@@ -17,8 +17,6 @@ package quorum
 import (
 	"github.com/blocktree/openwallet/v2/common"
 	"github.com/ethereum/go-ethereum/accounts/abi"
-	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-	ethcom "github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"strings"
 	"time"
@@ -756,13 +754,6 @@ func (bs *BlockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTrans
 // extractERC20Transaction
 func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAddress string, tokenEvent []*TransferEvent) map[string]*openwallet.TxExtractData {
 
-	var (
-		tokenName     string
-		tokenSymbol   string
-		tokenDecimals uint8
-		out           []interface{}
-	)
-
 	nowUnix := time.Now().Unix()
 	status := common.NewString(tx.Status).String()
 	reason := ""
@@ -770,38 +761,25 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 	contractAddress = bs.wm.CustomAddressEncodeFunc(contractAddress)
 	contractId := openwallet.GenContractID(bs.wm.Symbol(), contractAddress)
 
-	// 读取缓存是否已记录合约信息
-	logContract := bs.logContractsMap[contractAddress]
-	if logContract == nil {
-		bc := bind.NewBoundContract(ethcom.HexToAddress(contractAddress), ERC20_ABI, bs.wm.RawClient, bs.wm.RawClient, nil)
-		bc.Call(&bind.CallOpts{}, &out, "name")
-		if out != nil && len(out) > 0 {
-			tokenName = common.NewString(out[0]).String()
-			out = nil
-		}
+	var logContract *openwallet.SmartContract
 
-		bc.Call(&bind.CallOpts{}, &out, "symbol")
-		if out != nil && len(out) > 0 {
-			tokenSymbol = common.NewString(out[0]).String()
-			out = nil
+	if bs.wm.Config.DetectUnknownContracts == 1 {
+		// 读取缓存是否已记录合约信息
+		logContract = bs.logContractsMap[contractAddress]
+		if logContract == nil {
+			logContract, _ = bs.wm.GetSmartContractDecoder().GetTokenMetadata(contractAddress)
+			bs.logContractsMap[contractAddress] = logContract
 		}
-
-		bc.Call(&bind.CallOpts{}, &out, "decimals")
-		if out != nil && len(out) > 0 {
-			tokenDecimals = common.NewString(out[0]).UInt8()
-			out = nil
-		}
-
+	} else {
 		logContract = &openwallet.SmartContract{
 			ContractID: contractId,
 			Symbol:     bs.wm.Symbol(),
 			Address:    contractAddress,
-			Token:      tokenSymbol,
+			Token:      "",
 			Protocol:   openwallet.InterfaceTypeERC20,
-			Name:       tokenName,
-			Decimals:   uint64(tokenDecimals),
+			Name:       "",
+			Decimals:   uint64(0),
 		}
-
 	}
 
 	coin := openwallet.Coin{
