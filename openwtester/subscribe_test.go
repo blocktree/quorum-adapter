@@ -39,17 +39,17 @@ func (sub *subscriberSingle) BlockScanNotify(header *openwallet.BlockHeader) err
 
 // BlockTxExtractDataNotify 区块提取结果通知
 func (sub *subscriberSingle) BlockExtractDataNotify(sourceKey string, data *openwallet.TxExtractData) error {
-	//log.Notice("account:", sourceKey)
-	//
-	//for i, input := range data.TxInputs {
-	//	log.Std.Notice("data.TxInputs[%d]: %+v", i, input)
-	//}
-	//
-	//for i, output := range data.TxOutputs {
-	//	log.Std.Notice("data.TxOutputs[%d]: %+v", i, output)
-	//}
-	//
-	//log.Std.Notice("data.Transaction: %+v", data.Transaction)
+	log.Notice("account:", sourceKey)
+
+	for i, input := range data.TxInputs {
+		log.Std.Notice("data.TxInputs[%d]: %+v", i, input)
+	}
+
+	for i, output := range data.TxOutputs {
+		log.Std.Notice("data.TxOutputs[%d]: %+v", i, output)
+	}
+
+	log.Std.Notice("data.Transaction: %+v", data.Transaction)
 
 	return nil
 }
@@ -61,6 +61,7 @@ func (sub *subscriberSingle) BlockExtractSmartContractDataNotify(sourceKey strin
 	//log.Std.Notice("data.ContractTransaction: %+v", data)
 	//
 	//for i, event := range data.Events {
+	//	log.Std.Notice("event.contract[%d]: %+v", i, event.Contract)
 	//	log.Std.Notice("data.Events[%d]: %+v", i, event)
 	//	assetsMgr, err := openw.GetAssetsAdapter(data.Coin.Symbol)
 	//	if err != nil {
@@ -94,9 +95,9 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 	}
 	contract.ContractID = openwallet.GenContractID(contract.Symbol, contract.Address)
 
-	addrs[contract.Address] = openwallet.ScanTargetResult{SourceKey: contract.ContractID, Exist: true, TargetInfo: contract}
-	addrs["0xd6b8ec0775abdce1e385c763b71eacff3991bad7"] = openwallet.ScanTargetResult{
-		SourceKey:  "receiver",
+	//addrs[contract.Address] = openwallet.ScanTargetResult{SourceKey: contract.ContractID, Exist: true, TargetInfo: contract}
+	addrs["0xb2d8d0dd1ff50994f18e29d0478f86c400cf001b"] = openwallet.ScanTargetResult{
+		SourceKey:  "sender",
 		Exist:      true,
 		TargetInfo: nil,
 	}
@@ -117,7 +118,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(46968600)
+	//scanner.SetRescanBlockHeight(46958657)
 	scanner.Run()
 
 	<-endRunning

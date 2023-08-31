@@ -19,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"math/big"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/blocktree/openwallet/v2/openwallet"
@@ -41,6 +42,7 @@ type BlockScanner struct {
 	IsScanMemPool        bool                                 //是否扫描交易池
 	RescanLastBlockCount uint64                               //重扫上N个区块数量
 	logContractsMap      map[string]*openwallet.SmartContract //纪录合约信息避免重复查找合约ABI
+	sync.RWMutex
 }
 
 // ExtractResult 扫描完成的提取结果
@@ -323,6 +325,109 @@ func (bs *BlockScanner) newExtractDataNotify(height uint64, extractDataList map[
 	return nil
 }
 
+// fetchContractsInfo 读取智能合约信息并缓存
+func (bs *BlockScanner) fetchContractsInfo(txs []*BlockTransaction) error {
+
+	if bs.wm.Config.UseQNSingleFlightRPC == 0 {
+		return nil
+	}
+
+	var (
+		limit = 10
+	)
+
+	fetchCollectionDetailsFunc := func(addres []string) error {
+
+		details, err := bs.wm.QNFetchNFTCollectionDetails(addres)
+		if err != nil {
+			return err
+		}
+
+		if details.IsArray() && len(details.Array()) > 0 {
+			for _, d := range details.Array() {
+				address := strings.ToLower(d.Get("address").String())
+				erc1155 := d.Get("erc1155").Bool()
+				erc721 := d.Get("erc721").Bool()
+				name := d.Get("name").String()
+				contractId := openwallet.GenContractID(bs.wm.Symbol(), address)
+				var contract *openwallet.SmartContract
+				if erc1155 {
+					contract = &openwallet.SmartContract{
+						ContractID: contractId,
+						Symbol:     bs.wm.Symbol(),
+						Address:    address,
+						Decimals:   0,
+						Token:      "",
+						Name:       name,
+						Protocol:   openwallet.InterfaceTypeERC1155,
+					}
+					contract.SetABI(ERC1155_ABI_JSON)
+				} else if erc721 {
+					contract = &openwallet.SmartContract{
+						ContractID: contractId,
+						Symbol:     bs.wm.Symbol(),
+						Address:    address,
+						Decimals:   0,
+						Token:      "",
+						Name:       name,
+						Protocol:   openwallet.InterfaceTypeERC721,
+					}
+					contract.SetABI(ERC721_ABI_JSON)
+				}
+				if contract != nil {
+					bs.Lock()
+					bs.logContractsMap[address] = contract
+					bs.Unlock()
+				}
+			}
+		}
+
+		return nil
+	}
+
+	//缓存智能合约信息
+	contracts := NewAddressSet()
+	for _, tx := range txs {
+		for _, log := range tx.Receipt.ETHReceipt.Logs {
+			logContractAddress := strings.ToLower(log.Address.String())
+			if bs.logContractsMap[logContractAddress] != nil {
+				continue
+			}
+			contracts.Add(logContractAddress)
+			//contracts = append(contracts, logContractAddress)
+		}
+	}
+
+	bs.wm.Log.Debugf("fetchCollectionDetails count: %d", contracts.Len())
+
+	params := make([]string, 0)
+	i := 0
+	for _, addr := range contracts.List() {
+		params = append(params, addr)
+		i++
+		if i == limit {
+			//fetchCollectionDetailsFunc
+			err := fetchCollectionDetailsFunc(params)
+			if err != nil {
+				return err
+			}
+			//reset
+			i = 0
+			params = make([]string, 0)
+		}
+	}
+
+	if len(params) > 0 {
+		//fetchCollectionDetailsFunc
+		err := fetchCollectionDetailsFunc(params)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // BatchExtractTransaction 批量提取交易单
 func (bs *BlockScanner) BatchExtractTransaction(height uint64, txs []*BlockTransaction) error {
 
@@ -336,6 +441,12 @@ func (bs *BlockScanner) BatchExtractTransaction(height uint64, txs []*BlockTrans
 	if len(txs) == 0 {
 		return nil
 	}
+
+	//缓存合约信息
+	//err := bs.fetchContractsInfo(txs)
+	//if err != nil {
+	//	bs.wm.Log.Errorf("block height: %d, fetchContractsInfo failed. unexpected error: %v", height, err.Error())
+	//}
 
 	//生产通道
 	producer := make(chan ExtractResult)
@@ -778,10 +889,14 @@ func (bs *BlockScanner) extractERC20Transaction(tx *BlockTransaction, contractAd
 	if logContract == nil {
 		if bs.wm.Config.DetectUnknownContracts == 1 {
 			// 读取缓存是否已记录合约信息
+			bs.RLock()
 			logContract = bs.logContractsMap[contractAddress]
+			bs.RUnlock()
 			if logContract == nil {
 				logContract, _ = bs.wm.GetSmartContractDecoder().GetTokenMetadata(contractAddress)
+				bs.Lock()
 				bs.logContractsMap[contractAddress] = logContract
+				bs.Unlock()
 			}
 		} else {
 			logContract = &openwallet.SmartContract{
@@ -962,9 +1077,12 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 		var (
 			logContractAddress = strings.ToLower(log.Address.String())
 			logContract        *openwallet.SmartContract
+			eventName          string
+			logJSON            string
 		)
-
+		bs.RLock()
 		logContract = bs.logContractsMap[logContractAddress]
+		bs.RUnlock()
 		//合约信息不在内存，查找外部数据源
 		if logContract == nil {
 			logTargetResult := tx.FilterFunc(openwallet.ScanTargetParam{
@@ -991,23 +1109,48 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 
 		//没有纪录ABI，不处理提取
 		if logContract == nil || len(logContract.GetABI()) == 0 {
-			continue
-		}
-		bs.logContractsMap[logContractAddress] = logContract
+			//continue
 
-		abiInstance, logErr := abi.JSON(strings.NewReader(logContract.GetABI()))
-		if logErr != nil {
-			bs.wm.Log.Errorf("abi decode json failed, err: %v", logErr)
-			result.Success = false
-			return
-		}
+			contractId := openwallet.GenContractID(bs.wm.Symbol(), contractAddress)
+			logContract = &openwallet.SmartContract{
+				ContractID: contractId,
+				Symbol:     bs.wm.Symbol(),
+				Address:    contractAddress,
+				Decimals:   0,
+			}
 
-		_, eventName, logJSON, logErr := bs.wm.DecodeReceiptLogResult(abiInstance, *log)
-		if logErr != nil {
-			//bs.wm.Log.Errorf("DecodeReceiptLogResult failed, err: %v", logErr)
-			//result.Success = false
-			//return
-			continue
+			//todo: 尝试解析erc721，erc1155, erc20
+			_, eventName, logJSON, _ = bs.wm.DecodeReceiptLogResult(ERC721_ABI, *log)
+			if len(eventName) == 0 {
+				_, eventName, logJSON, _ = bs.wm.DecodeReceiptLogResult(ERC1155_ABI, *log)
+				if len(eventName) == 0 {
+					_, eventName, logJSON, _ = bs.wm.DecodeReceiptLogResult(ERC20_ABI, *log)
+					if len(eventName) == 0 {
+						continue
+					}
+				}
+			}
+			//bs.wm.Log.Debugf("Found a contract that looks like ERC721 or ERC1155 or ERC20, event name: %v", eventName)
+		} else {
+			//解析
+			bs.Lock()
+			bs.logContractsMap[logContractAddress] = logContract
+			bs.Unlock()
+			abiInstance, logErr := abi.JSON(strings.NewReader(logContract.GetABI()))
+			if logErr != nil {
+				bs.wm.Log.Errorf("abi decode json failed, err: %v", logErr)
+				result.Success = false
+				return
+			}
+
+			_, eventName, logJSON, logErr = bs.wm.DecodeReceiptLogResult(abiInstance, *log)
+			if logErr != nil {
+				//bs.wm.Log.Errorf("DecodeReceiptLogResult failed, err: %v", logErr)
+				//result.Success = false
+				//return
+				continue
+			}
+
 		}
 
 		e := &openwallet.SmartContractEvent{

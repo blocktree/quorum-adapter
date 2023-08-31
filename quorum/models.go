@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/blocktree/openwallet/v2/common"
@@ -306,4 +307,54 @@ func isByteArray(typ reflect.Type) bool {
 
 func isByte(typ reflect.Type) bool {
 	return typ.Kind() == reflect.Uint8
+}
+
+type AddressSet struct {
+	m map[string]bool
+	sync.RWMutex
+}
+
+func NewAddressSet() *AddressSet {
+	return &AddressSet{
+		m: map[string]bool{},
+	}
+}
+func (s *AddressSet) Add(item string) {
+	s.Lock()
+	defer s.Unlock()
+	s.m[item] = true
+}
+func (s *AddressSet) Remove(item string) {
+	s.Lock()
+	s.Unlock()
+	delete(s.m, item)
+}
+func (s *AddressSet) Has(item string) bool {
+	s.RLock()
+	defer s.RUnlock()
+	_, ok := s.m[item]
+	return ok
+}
+func (s *AddressSet) Len() int {
+	return len(s.List())
+}
+func (s *AddressSet) Clear() {
+	s.Lock()
+	defer s.Unlock()
+	s.m = map[string]bool{}
+}
+func (s *AddressSet) IsEmpty() bool {
+	if s.Len() == 0 {
+		return true
+	}
+	return false
+}
+func (s *AddressSet) List() []string {
+	s.RLock()
+	defer s.RUnlock()
+	list := []string{}
+	for item := range s.m {
+		list = append(list, item)
+	}
+	return list
 }

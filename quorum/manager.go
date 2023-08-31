@@ -432,6 +432,10 @@ func (wm *WalletManager) DecodeReceiptLogResult(abiInstance abi.ABI, log types.L
 		event      *abi.Event
 	)
 
+	if len(log.Topics) == 0 {
+		return result, "", "", fmt.Errorf("log topics is empty")
+	}
+
 	bc := bind.NewBoundContract(ethcom.HexToAddress("0x0"), abiInstance, nil, nil, nil)
 	//wm.Log.Debugf("log.txid: %s", log.TxHash.String())
 	//wm.Log.Debugf("log.Topics[0]: %s", log.Topics[0].Hex())
@@ -991,7 +995,17 @@ func (wm *WalletManager) GetQNBlockWithReceipts(blockNum uint64) (*EthBlock, err
 	return &ethBlock, nil
 }
 
-func (wm *WalletManager) GetTokenMetadataByContractAddress(contract string) error {
-	//qn_getTokenMetadataByContractAddress
-	return nil
+func (wm *WalletManager) QNFetchNFTCollectionDetails(contracts []string) (*gjson.Result, error) {
+	//qn_fetchNFTCollectionDetails
+	params := []interface{}{
+		map[string]interface{}{
+			"contracts": contracts,
+		},
+	}
+	result, err := wm.WalletClient.Call("qn_fetchNFTCollectionDetails", params)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
