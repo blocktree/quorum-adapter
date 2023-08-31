@@ -208,82 +208,86 @@ func (decoder *NFTContractDecoder) GetNFTTransfer(event *openwallet.SmartContrac
 	)
 
 	//检查是否有转账事件
-
-	// 检查合约是否支持nft协议
-	inferfaceType := decoder.wm.SupportsInterface(event.Contract.Address)
-	obj := gjson.ParseBytes([]byte(event.Value))
-	switch inferfaceType {
-	case openwallet.InterfaceTypeERC721:
-		if event.Event == "Transfer" {
-			//{"from":"0x1234","to":"0xabcd","tokenId":1414}}
-			operator = obj.Get("from").String()
-			from = obj.Get("from").String()
-			to = obj.Get("to").String()
-			amounts = append(amounts, "1")
-			nfts = append(nfts, openwallet.NFT{
-				Symbol:   event.Contract.Symbol,
-				Address:  event.Contract.Address,
-				Token:    event.Contract.Token,
-				Protocol: inferfaceType,
-				Name:     event.Contract.Name,
-				TokenID:  obj.Get("tokenId").String(),
-			})
-		} else {
-			return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT event invalid")
-		}
-	case openwallet.InterfaceTypeERC1155:
-
-		operator = obj.Get("operator").String()
-		from = obj.Get("from").String()
-		to = obj.Get("to").String()
-
-		if event.Event == "TransferSingle" {
-			nfts = append(nfts, openwallet.NFT{
-				Symbol:   event.Contract.Symbol,
-				Address:  event.Contract.Address,
-				Token:    event.Contract.Token,
-				Protocol: inferfaceType,
-				Name:     event.Contract.Name,
-				TokenID:  obj.Get("id").String(),
-			})
-			amounts = append(amounts, obj.Get("value").String())
-		} else if event.Event == "TransferBatch" {
-			ids := obj.Get("ids").Array()
-			values := obj.Get("values").Array()
-			for i, id := range ids {
+	if event.Event == "Transfer" || event.Event == "TransferSingle" || event.Event == "TransferBatch" {
+		// 检查合约是否支持nft协议
+		inferfaceType := decoder.wm.SupportsInterface(event.Contract.Address)
+		obj := gjson.ParseBytes([]byte(event.Value))
+		switch inferfaceType {
+		case openwallet.InterfaceTypeERC721:
+			if event.Event == "Transfer" {
+				//{"from":"0x1234","to":"0xabcd","tokenId":1414}}
+				operator = obj.Get("from").String()
+				from = obj.Get("from").String()
+				to = obj.Get("to").String()
+				amounts = append(amounts, "1")
 				nfts = append(nfts, openwallet.NFT{
 					Symbol:   event.Contract.Symbol,
 					Address:  event.Contract.Address,
 					Token:    event.Contract.Token,
 					Protocol: inferfaceType,
 					Name:     event.Contract.Name,
-					TokenID:  id.String(),
+					TokenID:  obj.Get("tokenId").String(),
 				})
-				amounts = append(amounts, values[i].String())
+			} else {
+				return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT event invalid")
 			}
-		} else {
-			return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT event invalid")
+		case openwallet.InterfaceTypeERC1155:
+
+			operator = obj.Get("operator").String()
+			from = obj.Get("from").String()
+			to = obj.Get("to").String()
+
+			if event.Event == "TransferSingle" {
+				nfts = append(nfts, openwallet.NFT{
+					Symbol:   event.Contract.Symbol,
+					Address:  event.Contract.Address,
+					Token:    event.Contract.Token,
+					Protocol: inferfaceType,
+					Name:     event.Contract.Name,
+					TokenID:  obj.Get("id").String(),
+				})
+				amounts = append(amounts, obj.Get("value").String())
+			} else if event.Event == "TransferBatch" {
+				ids := obj.Get("ids").Array()
+				values := obj.Get("values").Array()
+				for i, id := range ids {
+					nfts = append(nfts, openwallet.NFT{
+						Symbol:   event.Contract.Symbol,
+						Address:  event.Contract.Address,
+						Token:    event.Contract.Token,
+						Protocol: inferfaceType,
+						Name:     event.Contract.Name,
+						TokenID:  id.String(),
+					})
+					amounts = append(amounts, values[i].String())
+				}
+			} else {
+				return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT event invalid")
+			}
+
+		default:
+			return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT interface type is not support")
 		}
 
-	default:
-		return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT interface type is not support")
+		if from == ethcom.HexToAddress("0x00").String() {
+			eventType = openwallet.NFTEventTypeMinted
+		}
+		if to == ethcom.HexToAddress("0x00").String() {
+			eventType = openwallet.NFTEventTypeBurned
+		}
+
+		nftTx = &openwallet.NFTTransfer{
+			Tokens:    nfts,
+			Operator:  operator,
+			From:      from,
+			To:        to,
+			Amounts:   amounts,
+			EventType: uint64(eventType),
+		}
+
+		return nftTx, nil
+	} else {
+		return nil, openwallet.Errorf(openwallet.ErrSystemException, "NFT event invalid")
 	}
 
-	if from == ethcom.HexToAddress("0x00").String() {
-		eventType = openwallet.NFTEventTypeMinted
-	}
-	if to == ethcom.HexToAddress("0x00").String() {
-		eventType = openwallet.NFTEventTypeBurned
-	}
-
-	nftTx = &openwallet.NFTTransfer{
-		Tokens:    nfts,
-		Operator:  operator,
-		From:      from,
-		To:        to,
-		Amounts:   amounts,
-		EventType: uint64(eventType),
-	}
-
-	return nftTx, nil
 }

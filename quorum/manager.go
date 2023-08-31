@@ -970,6 +970,9 @@ func (wm *WalletManager) GetQNBlockWithReceipts(blockNum uint64) (*EthBlock, err
 		for _, tx := range ethBlock.Transactions {
 			txReceipt := receiptsMap[tx.Hash]
 			tx.Receipt = txReceipt
+			tx.Gas = common.NewString(txReceipt.ETHReceipt.GasUsed).String()
+			tx.Status = txReceipt.ETHReceipt.Status
+			tx.Decimal = wm.Decimal()
 		}
 	}
 

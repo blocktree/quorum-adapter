@@ -59,18 +59,18 @@ func TestBlockScanner_ExtractTransactionAndReceiptData(t *testing.T) {
 	wm := testNewWalletManager()
 
 	addrs := map[string]openwallet.ScanTargetResult{
-		"0x3440f720862aa7dfd4f86ecc78542b3ded900c02": openwallet.ScanTargetResult{
+		"0x58b332acc6f24ce1adf75bf32e66852df5cea89a": openwallet.ScanTargetResult{
 			SourceKey: "receiver",
 			Exist:     true,
 		},
 
-		"0xbff77bb15fec867b7db7b18a34fca6d20712ce2b": openwallet.ScanTargetResult{
+		"0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174": openwallet.ScanTargetResult{
 			SourceKey: "GOOD",
 			Exist:     true,
 			TargetInfo: &openwallet.SmartContract{
 				ContractID: "GOOD",
 				Symbol:     "QUORUM",
-				Address:    "0xbff77bb15fec867b7db7b18a34fca6d20712ce2b",
+				Address:    "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174",
 				Token:      "FUQI",
 				Protocol:   "",
 				Name:       "FUQI",
@@ -78,7 +78,7 @@ func TestBlockScanner_ExtractTransactionAndReceiptData(t *testing.T) {
 			},
 		},
 	}
-	txid := "0xda660592894dd357eedadbb69c82d7ff57859d6fb6269d2ea2eab0dce1dfd8e1"
+	txid := "0x4671340d0a22ace1f3ebff5831b037aabab96a9090e3499e5ba2dee79de618fc"
 	scanTargetFunc := func(target openwallet.ScanTargetParam) openwallet.ScanTargetResult {
 		return addrs[target.ScanTarget]
 	}

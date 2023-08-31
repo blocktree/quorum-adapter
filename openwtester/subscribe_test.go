@@ -49,7 +49,7 @@ func (sub *subscriberSingle) BlockExtractDataNotify(sourceKey string, data *open
 	//	log.Std.Notice("data.TxOutputs[%d]: %+v", i, output)
 	//}
 	//
-	//log.Std.Notice("data.Transaction: %+v", data.Transaction)
+	log.Std.Notice("data.Transaction: %+v", data.Transaction)
 
 	return nil
 }
@@ -57,8 +57,8 @@ func (sub *subscriberSingle) BlockExtractDataNotify(sourceKey string, data *open
 // BlockExtractSmartContractDataNotify 区块提取智能合约交易结果通知
 func (sub *subscriberSingle) BlockExtractSmartContractDataNotify(sourceKey string, data *openwallet.SmartContractReceipt) error {
 
-	//log.Notice("sourceKey:", sourceKey)
-	//log.Std.Notice("data.ContractTransaction: %+v", data)
+	log.Notice("sourceKey:", sourceKey)
+	log.Std.Notice("data.ContractTransaction: %+v", data)
 	//
 	//for i, event := range data.Events {
 	//	log.Std.Notice("data.Events[%d]: %+v", i, event)
@@ -83,7 +83,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		symbol     = ChainSymbol
 		//accountID  = "HgRBsaiKgoVDagwezos496vqKQCh41pY44JbhW65YA8t"
 		addrs = map[string]string{
-			"0xe39fa96309bf38ff9fc5cd98373f6532639933d7": "sender",
+			"0xb2d8d0dd1ff50994f18e29d0478f86c400cf001b": "sender",
 		}
 	)
 
@@ -99,7 +99,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	//scanner.SetRescanBlockHeight(46927223)
+	scanner.SetRescanBlockHeight(46958657)
 	scanner.Run()
 
 	<-endRunning

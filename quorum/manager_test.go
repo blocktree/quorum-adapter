@@ -229,9 +229,9 @@ func TestWalletManager_DecodeReceiptLogResult(t *testing.T) {
 
 func TestWalletManager_GetBlockWithReceipts(t *testing.T) {
 	wm := testNewWalletManager()
-	_, err := wm.GetQNBlockWithReceipts(46918227)
+	_, err := wm.GetQNBlockWithReceipts(46958657)
 	if err != nil {
-		t.Errorf("GetTransactionCount error: %v", err)
+		t.Errorf("GetQNBlockWithReceipts error: %v", err)
 		return
 	}
 	//log.Infof("result: %v", result.Raw)
