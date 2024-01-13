@@ -19,6 +19,7 @@ import (
 	"github.com/astaxie/beego/config"
 	"github.com/blocktree/openwallet/v2/log"
 	"github.com/blocktree/openwallet/v2/openwallet"
+	"github.com/blocktree/quorum-adapter/quorum_moralis"
 	"github.com/blocktree/quorum-adapter/quorum_rpc"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"math/big"
@@ -92,10 +93,16 @@ func (wm *WalletManager) LoadAssetsConfig(c config.Configer) error {
 	}
 
 	wm.RawClient = ethclient.NewClient(client.RawClient)
-	//wm.RawClient, err = ethclient.Dial(wm.Config.ServerAPI)
-	//if err != nil {
-	//	return err
-	//}
+	useMoralisAPIParseBlock, _ := c.Int64("useMoralisAPIParseBlock")
+	moralisAPIKey := c.String("moralisAPIKey")
+	moralisAPIChain := c.String("moralisAPIChain")
+	if len(moralisAPIKey) > 0 && len(moralisAPIChain) > 0 {
+		wm.Config.UseMoralisAPIParseBlock = useMoralisAPIParseBlock
+		wm.MoralisSDK = quorum_moralis.New(
+			moralisAPIKey,
+			moralisAPIChain,
+			false)
+	}
 
 	return nil
 

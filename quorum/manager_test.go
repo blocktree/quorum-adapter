@@ -51,6 +51,10 @@ func testNewWalletManager() *WalletManager {
 	}
 	wm.LoadAssetsConfig(c)
 	wm.WalletClient.Debug = true
+	//if wm.MoralisSDK != nil {
+	//	wm.MoralisSDK.Debug = true
+	//}
+
 	return wm
 }
 
@@ -230,7 +234,7 @@ func TestWalletManager_DecodeReceiptLogResult(t *testing.T) {
 
 func TestWalletManager_GetBlockWithReceipts(t *testing.T) {
 	wm := testNewWalletManager()
-	_, err := wm.GetQNBlockWithReceipts(46958657)
+	_, err := wm.GetQNBlockWithReceipts(51951403)
 	if err != nil {
 		t.Errorf("GetQNBlockWithReceipts error: %v", err)
 		return
@@ -240,16 +244,18 @@ func TestWalletManager_GetBlockWithReceipts(t *testing.T) {
 
 func TestWalletManager_GetBlockByNum(t *testing.T) {
 	wm := testNewWalletManager()
-	block, err := wm.GetBlockByNum(46918227, true)
+	block, err := wm.GetBlockByNum(51799847, true)
 	if err != nil {
 		t.Errorf("GetTransactionCount error: %v", err)
 		return
 	}
+	log.Infof("block header: %+v", block.BlockHeader)
 	for i, tx := range block.Transactions {
-		if tx.Receipt == nil {
-			log.Infof("tx.Receipt[%d]: nil", i)
-			return
-		}
-		log.Infof("tx.Receipt[%d]: %+v", i, tx.Receipt)
+		log.Infof("tx[%d]: %+v", i, tx)
+		//if tx.Receipt == nil {
+		//	log.Infof("tx.Receipt[%d]: nil", i)
+		//	continue
+		//}
+		//log.Infof("tx.Receipt[%d]: %+v", i, tx.Receipt)
 	}
 }

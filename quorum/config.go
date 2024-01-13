@@ -55,6 +55,8 @@ type WalletConfig struct {
 	UseQNSingleFlightRPC int64
 	// Detect unknown contracts
 	DetectUnknownContracts int64
+	// 是否用Moralis解析区块
+	UseMoralisAPIParseBlock int64
 }
 
 func NewConfig(symbol string) *WalletConfig {

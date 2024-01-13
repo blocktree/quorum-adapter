@@ -18,6 +18,7 @@ package quorum
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/blocktree/quorum-adapter/quorum_moralis"
 	"github.com/tidwall/gjson"
 
 	"github.com/blocktree/go-owcrypt"
@@ -53,6 +54,7 @@ type WalletManager struct {
 	Log                     *log.OWLogger                   //日志工具
 	CustomAddressEncodeFunc func(address string) string     //自定义地址转换算法
 	CustomAddressDecodeFunc func(address string) string     //自定义地址转换算法
+	MoralisSDK              *quorum_moralis.MoralisSDK      //MoralisSDK
 }
 
 func NewWalletManager() *WalletManager {
@@ -180,6 +182,9 @@ func (wm *WalletManager) GetETHBlockByNum(blockNum uint64, showTransactionSpec b
 }
 
 func (wm *WalletManager) GetBlockByNum(blockNum uint64, showTransactionSpec bool) (*EthBlock, error) {
+	if wm.Config.UseMoralisAPIParseBlock == 1 && wm.MoralisSDK != nil && showTransactionSpec {
+		return wm.GetBlockByMoralis(blockNum)
+	}
 	if wm.Config.UseQNSingleFlightRPC == 1 && showTransactionSpec {
 		return wm.GetQNBlockWithReceipts(blockNum)
 	}
@@ -1008,4 +1013,20 @@ func (wm *WalletManager) QNFetchNFTCollectionDetails(contracts []string) (*gjson
 	}
 
 	return result, nil
+}
+
+// GetBlockByMoralis
+func (wm *WalletManager) GetBlockByMoralis(blockNum uint64) (*EthBlock, error) {
+
+	result, err := wm.MoralisSDK.GetBlockByMoralis(blockNum)
+	if err != nil {
+		return nil, err
+	}
+
+	ethBlock := parseBlockFormMoralis(result, wm.Decimal())
+	if len(ethBlock.BlockHash) == 0 {
+		return nil, fmt.Errorf("GetBlockByMoralis block not found")
+	}
+	//log.Debugf("ethBlock header: %+v", ethBlock.BlockHeader)
+	return ethBlock, nil
 }

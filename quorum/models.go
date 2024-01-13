@@ -17,6 +17,7 @@ package quorum
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/shopspring/decimal"
 	"math/big"
 	"reflect"
 	"strings"
@@ -52,6 +53,127 @@ var (
 type EthBlock struct {
 	BlockHeader
 	Transactions []*BlockTransaction `json:"transactions"`
+}
+
+func parseBlockFormMoralis(jsonData *gjson.Result, decimals int32) *EthBlock {
+
+	//解析区块头
+	block := &EthBlock{}
+	block.BlockNumber = hexutil.EncodeUint64(jsonData.Get("number").Uint())
+	block.BlockHash = jsonData.Get("hash").String()
+	block.PreviousHash = jsonData.Get("parent_hash").String()
+	block.BlockHeight = jsonData.Get("number").Uint()
+
+	//解析交易列表
+	blockTxs := make([]*BlockTransaction, 0)
+	txs := jsonData.Get("transactions").Array()
+	if txs != nil && len(txs) > 0 {
+		for _, tx := range txs {
+			blockTx := &BlockTransaction{}
+			blockTx.Hash = tx.Get("hash").String()
+			blockTx.BlockNumber = block.BlockNumber
+			blockTx.BlockHash = block.BlockHash
+			blockTx.From = tx.Get("from_address").String()
+			blockTx.To = tx.Get("to_address").String()
+			blockTx.Gas = tx.Get("receipt_gas_used").String()
+			blockTx.GasPrice = hexutil.EncodeBig(common.StringNumToBigIntWithExp(tx.Get("gas_price").String(), 0))
+			blockTx.Value = hexutil.EncodeBig(common.StringNumToBigIntWithExp(tx.Get("value").String(), 0))
+			blockTx.BlockHeight = block.BlockHeight
+			blockTx.Status = tx.Get("receipt_status").Uint()
+			blockTx.IsInternal = false
+			blockTx.Decimal = decimals
+
+			blockTxReceipt := &TransactionReceipt{ETHReceipt: &types.Receipt{}}
+			blockTxReceipt.ETHReceipt.Status = blockTx.Status
+			blockTxReceipt.ETHReceipt.TxHash = ethcom.HexToHash(blockTx.Hash)
+			blockTxReceipt.ETHReceipt.ContractAddress = ethcom.HexToAddress(tx.Get("receipt_contract_address").String())
+			blockTxReceipt.ETHReceipt.CumulativeGasUsed = tx.Get("receipt_cumulative_gas_used").Uint()
+			blockTxReceipt.ETHReceipt.GasUsed = tx.Get("receipt_gas_used").Uint()
+			//blockTxReceipt.ETHReceipt.Logs = blockTx.Status
+			blockTxReceipt.ETHReceipt.Logs = make([]*types.Log, 0)
+			logs := tx.Get("logs").Array()
+			if logs != nil && len(logs) > 0 {
+				for _, logData := range logs {
+					txLog := &types.Log{}
+					txLog.Address = ethcom.HexToAddress(logData.Get("address").String())
+					txLog.Data = ethcom.FromHex(logData.Get("data").String())
+					txLog.BlockNumber = block.BlockHeight
+					txLog.TxHash = ethcom.HexToHash(logData.Get("transaction_hash").String())
+					txLog.TxIndex = uint(logData.Get("transaction_index").Uint())
+					txLog.BlockHash = ethcom.HexToHash(logData.Get("block_hash").String())
+					txLog.Index = uint(logData.Get("log_index").Uint())
+
+					//处理Topics
+					topic0 := logData.Get("topic0").String()
+					topic1 := logData.Get("topic1").String()
+					topic2 := logData.Get("topic2").String()
+					topic3 := logData.Get("topic3").String()
+					topics := make([]ethcom.Hash, 0)
+					if len(topic0) > 0 {
+						topics = append(topics, ethcom.HexToHash(topic0))
+					}
+					if len(topic1) > 0 {
+						topics = append(topics, ethcom.HexToHash(topic1))
+					}
+					if len(topic2) > 0 {
+						topics = append(topics, ethcom.HexToHash(topic2))
+					}
+					if len(topic3) > 0 {
+						topics = append(topics, ethcom.HexToHash(topic3))
+					}
+					txLog.Topics = topics
+
+					blockTxReceipt.ETHReceipt.Logs = append(blockTxReceipt.ETHReceipt.Logs, txLog)
+				}
+			}
+
+			//最后把ETHReceipt转为raw字符串
+			raw, _ := json.Marshal(blockTxReceipt.ETHReceipt)
+			blockTxReceipt.Raw = string(raw)
+			blockTx.Receipt = blockTxReceipt
+
+			//主交易加入到数组
+			blockTxs = append(blockTxs, blockTx)
+
+			//把内部交易的原生币交易也加入到交易数组
+			interTxs := tx.Get("internal_transactions").Array()
+			if interTxs != nil && len(interTxs) > 0 {
+				for _, interTx := range interTxs {
+					value, _ := decimal.NewFromString(interTx.Get("value").String())
+					if !value.IsZero() {
+						blockInterTx := &BlockTransaction{}
+						blockInterTx.Hash = blockTx.Hash
+						blockInterTx.BlockNumber = blockTx.BlockNumber
+						blockInterTx.BlockHash = blockTx.BlockHash
+						blockInterTx.From = interTx.Get("from").String()
+						blockInterTx.To = interTx.Get("to").String()
+						blockInterTx.Value = hexutil.EncodeBig(common.StringNumToBigIntWithExp(interTx.Get("value").String(), 0))
+						blockInterTx.BlockHeight = block.BlockHeight
+						blockInterTx.Status = blockTx.Status
+						blockInterTx.IsInternal = true
+						blockInterTx.Receipt = nil
+						blockInterTx.Decimal = decimals
+
+						blockInterTxReceipt := &TransactionReceipt{ETHReceipt: &types.Receipt{}}
+						blockInterTxReceipt.ETHReceipt.Status = blockTx.Status
+						blockInterTxReceipt.ETHReceipt.TxHash = ethcom.HexToHash(blockTx.Hash)
+						blockInterTxReceipt.ETHReceipt.Logs = make([]*types.Log, 0)
+						//最后把ETHReceipt转为raw字符串
+						blockInterTxReceiptRaw, _ := json.Marshal(blockInterTxReceipt.ETHReceipt)
+						blockInterTxReceipt.Raw = string(blockInterTxReceiptRaw)
+						blockInterTx.Receipt = blockInterTxReceipt
+
+						//添加内部交易
+						blockTxs = append(blockTxs, blockInterTx)
+					}
+
+				}
+			}
+
+		}
+	}
+	block.Transactions = blockTxs
+	return block
 }
 
 func (block *EthBlock) CreateOpenWalletBlockHeader() *openwallet.BlockHeader {
@@ -186,6 +308,7 @@ type BlockTransaction struct {
 	Status           uint64 `json:"-"`
 	Receipt          *TransactionReceipt
 	Decimal          int32
+	IsInternal       bool //是否内部原生币交易
 }
 
 func (this *BlockTransaction) GetAmountEthString() string {
@@ -195,6 +318,10 @@ func (this *BlockTransaction) GetAmountEthString() string {
 }
 
 func (this *BlockTransaction) GetTxFeeEthString() string {
+	//todo: gas无空值，手续费为0
+	if len(this.GasPrice) == 0 {
+		return "0"
+	}
 	gasPrice, _ := hexutil.DecodeBig(this.GasPrice)
 	gas := common.StringNumToBigIntWithExp(this.Gas, 0)
 	fee := big.NewInt(0)

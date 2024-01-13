@@ -1119,7 +1119,7 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 				Decimals:   0,
 			}
 
-			//todo: 尝试解析erc721，erc1155, erc20
+			// 尝试解析erc721，erc1155, erc20
 			_, eventName, logJSON, _ = bs.wm.DecodeReceiptLogResult(ERC721_ABI, *log)
 			if len(eventName) == 0 {
 				_, eventName, logJSON, _ = bs.wm.DecodeReceiptLogResult(ERC1155_ABI, *log)
@@ -1161,6 +1161,11 @@ func (bs *BlockScanner) extractSmartContractTransaction(tx *BlockTransaction, re
 
 		events = append(events, e)
 
+	}
+
+	//没有可解析event，不纪录
+	if len(events) == 0 {
+		return
 	}
 
 	scReceipt := &openwallet.SmartContractReceipt{
