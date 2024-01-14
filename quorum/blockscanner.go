@@ -739,8 +739,8 @@ func (bs *BlockScanner) extractBaseTransaction(tx *BlockTransaction, result *Ext
 func (bs *BlockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTransfer bool) map[string]*openwallet.TxExtractData {
 
 	txExtractMap := make(map[string]*openwallet.TxExtractData)
-	from := tx.From
-	to := tx.To
+	//from := tx.From
+	//to := tx.To
 	status := common.NewString(tx.Status).String()
 	reason := ""
 	nowUnix := time.Now().Unix()
@@ -755,86 +755,19 @@ func (bs *BlockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTrans
 		txType = 1
 	}
 
+	//待提取的交易，主交易+内部交易
+	txs := make([]*BlockTransaction, 0)
+	txs = append(txs, tx)
+	txs = append(txs, tx.InternalTxs...)
+
+	//提取出账部分记录
+	from := bs.extractETHDetail(txs, isTokenTransfer, true, txExtractMap)
+
+	//提取入账部分记录
+	to := bs.extractETHDetail(txs, isTokenTransfer, false, txExtractMap)
+
 	ethAmount := tx.GetAmountEthString()
 	feeprice := tx.GetTxFeeEthString()
-
-	targetResult := tx.FilterFunc(openwallet.ScanTargetParam{
-		ScanTarget:     from,
-		Symbol:         bs.wm.Symbol(),
-		ScanTargetType: openwallet.ScanTargetTypeAccountAddress})
-	if targetResult.Exist {
-		input := &openwallet.TxInput{}
-		input.TxID = tx.Hash
-		input.Address = from
-		input.Amount = ethAmount
-		input.Coin = coin
-		input.Index = 0
-		input.Sid = openwallet.GenTxInputSID(tx.Hash, bs.wm.Symbol(), "", 0)
-		input.CreateAt = nowUnix
-		input.BlockHeight = tx.BlockHeight
-		input.BlockHash = tx.BlockHash
-		input.TxType = txType
-
-		//transactions = append(transactions, &transaction)
-
-		ed := txExtractMap[targetResult.SourceKey]
-		if ed == nil {
-			ed = openwallet.NewBlockExtractData()
-			txExtractMap[targetResult.SourceKey] = ed
-		}
-
-		ed.TxInputs = append(ed.TxInputs, input)
-
-		//手续费作为一个输入
-		feeInput := &openwallet.TxInput{}
-		feeInput.Recharge.Sid = openwallet.GenTxInputSID(tx.Hash, bs.wm.Symbol(), "", uint64(1))
-		feeInput.Recharge.TxID = tx.Hash
-		feeInput.Recharge.Address = from
-		feeInput.Recharge.Coin = coin
-		feeInput.Recharge.Amount = feeprice
-		feeInput.Recharge.BlockHash = tx.BlockHash
-		feeInput.Recharge.BlockHeight = tx.BlockHeight
-		feeInput.Recharge.Index = 1 //账户模型填0
-		feeInput.Recharge.CreateAt = nowUnix
-		feeInput.Recharge.TxType = txType
-
-		ed.TxInputs = append(ed.TxInputs, feeInput)
-
-	}
-
-	// 检查to地址是否合约
-	//flag, _ := bs.wm.IsContract(to)
-	scanType := openwallet.ScanTargetTypeAccountAddress
-	//if flag {
-	//	scanType = openwallet.ScanTargetTypeContractAddress
-	//}
-	targetResult2 := tx.FilterFunc(openwallet.ScanTargetParam{
-		ScanTarget:     to,
-		Symbol:         bs.wm.Symbol(),
-		ScanTargetType: uint64(scanType)})
-	//bs.wm.Log.Infof("block scan to address scan type, result: %v", scanType)
-	//bs.wm.Log.Infof("block scan to address transaction, result: %+v", targetResult2)
-	if targetResult2.Exist {
-		output := &openwallet.TxOutPut{}
-		output.TxID = tx.Hash
-		output.Address = to
-		output.Amount = ethAmount
-		output.Coin = coin
-		output.Index = 0
-		output.Sid = openwallet.GenTxInputSID(tx.Hash, bs.wm.Symbol(), "", 0)
-		output.CreateAt = nowUnix
-		output.BlockHeight = tx.BlockHeight
-		output.BlockHash = tx.BlockHash
-		output.TxType = txType
-
-		ed := txExtractMap[targetResult2.SourceKey]
-		if ed == nil {
-			ed = openwallet.NewBlockExtractData()
-			txExtractMap[targetResult2.SourceKey] = ed
-		}
-
-		ed.TxOutputs = append(ed.TxOutputs, output)
-	}
 
 	for _, extractData := range txExtractMap {
 
@@ -847,8 +780,8 @@ func (bs *BlockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTrans
 			Decimal:     bs.wm.Decimal(),
 			Amount:      ethAmount,
 			ConfirmTime: nowUnix,
-			From:        []string{from + ":" + ethAmount},
-			To:          []string{to + ":" + ethAmount},
+			From:        from,
+			To:          to,
 			Status:      status,
 			Reason:      reason,
 			TxType:      txType,
@@ -859,7 +792,198 @@ func (bs *BlockScanner) extractETHTransaction(tx *BlockTransaction, isTokenTrans
 		extractData.Transaction = tx
 
 	}
+
+	//targetResult := tx.FilterFunc(openwallet.ScanTargetParam{
+	//	ScanTarget:     from,
+	//	Symbol:         bs.wm.Symbol(),
+	//	ScanTargetType: openwallet.ScanTargetTypeAccountAddress})
+	//if targetResult.Exist {
+	//	input := &openwallet.TxInput{}
+	//	input.TxID = tx.Hash
+	//	input.Address = from
+	//	input.Amount = ethAmount
+	//	input.Coin = coin
+	//	input.Index = 0
+	//	input.Sid = openwallet.GenTxInputSID(tx.Hash, bs.wm.Symbol(), "", 0)
+	//	input.CreateAt = nowUnix
+	//	input.BlockHeight = tx.BlockHeight
+	//	input.BlockHash = tx.BlockHash
+	//	input.TxType = txType
+	//
+	//	//transactions = append(transactions, &transaction)
+	//
+	//	ed := txExtractMap[targetResult.SourceKey]
+	//	if ed == nil {
+	//		ed = openwallet.NewBlockExtractData()
+	//		txExtractMap[targetResult.SourceKey] = ed
+	//	}
+	//
+	//	ed.TxInputs = append(ed.TxInputs, input)
+	//
+	//	//手续费作为一个输入
+	//	feeInput := &openwallet.TxInput{}
+	//	feeInput.Recharge.Sid = openwallet.GenTxInputSID(tx.Hash, bs.wm.Symbol(), "", uint64(1))
+	//	feeInput.Recharge.TxID = tx.Hash
+	//	feeInput.Recharge.Address = from
+	//	feeInput.Recharge.Coin = coin
+	//	feeInput.Recharge.Amount = feeprice
+	//	feeInput.Recharge.BlockHash = tx.BlockHash
+	//	feeInput.Recharge.BlockHeight = tx.BlockHeight
+	//	feeInput.Recharge.Index = 1 //账户模型填0
+	//	feeInput.Recharge.CreateAt = nowUnix
+	//	feeInput.Recharge.TxType = txType
+	//
+	//	ed.TxInputs = append(ed.TxInputs, feeInput)
+	//
+	//}
+	//
+	//// 检查to地址是否合约
+	////flag, _ := bs.wm.IsContract(to)
+	//scanType := openwallet.ScanTargetTypeAccountAddress
+	////if flag {
+	////	scanType = openwallet.ScanTargetTypeContractAddress
+	////}
+	//targetResult2 := tx.FilterFunc(openwallet.ScanTargetParam{
+	//	ScanTarget:     to,
+	//	Symbol:         bs.wm.Symbol(),
+	//	ScanTargetType: uint64(scanType)})
+	////bs.wm.Log.Infof("block scan to address scan type, result: %v", scanType)
+	////bs.wm.Log.Infof("block scan to address transaction, result: %+v", targetResult2)
+	//if targetResult2.Exist {
+	//	output := &openwallet.TxOutPut{}
+	//	output.TxID = tx.Hash
+	//	output.Address = to
+	//	output.Amount = ethAmount
+	//	output.Coin = coin
+	//	output.Index = 0
+	//	output.Sid = openwallet.GenTxInputSID(tx.Hash, bs.wm.Symbol(), "", 0)
+	//	output.CreateAt = nowUnix
+	//	output.BlockHeight = tx.BlockHeight
+	//	output.BlockHash = tx.BlockHash
+	//	output.TxType = txType
+	//
+	//	ed := txExtractMap[targetResult2.SourceKey]
+	//	if ed == nil {
+	//		ed = openwallet.NewBlockExtractData()
+	//		txExtractMap[targetResult2.SourceKey] = ed
+	//	}
+	//
+	//	ed.TxOutputs = append(ed.TxOutputs, output)
+	//}
+
+	//for _, extractData := range txExtractMap {
+	//
+	//	tx := &openwallet.Transaction{
+	//		Fees:        feeprice,
+	//		Coin:        coin,
+	//		BlockHash:   tx.BlockHash,
+	//		BlockHeight: tx.BlockHeight,
+	//		TxID:        tx.Hash,
+	//		Decimal:     bs.wm.Decimal(),
+	//		Amount:      ethAmount,
+	//		ConfirmTime: nowUnix,
+	//		From:        []string{from + ":" + ethAmount},
+	//		To:          []string{to + ":" + ethAmount},
+	//		Status:      status,
+	//		Reason:      reason,
+	//		TxType:      txType,
+	//	}
+	//
+	//	wxID := openwallet.GenTransactionWxID(tx)
+	//	tx.WxID = wxID
+	//	extractData.Transaction = tx
+	//
+	//}
 	return txExtractMap
+}
+
+func (bs *BlockScanner) extractETHDetail(txs []*BlockTransaction, isTokenTransfer bool, isInput bool, extractData map[string]*openwallet.TxExtractData) []string {
+	var (
+		addrs    = make([]string, 0)
+		createAt = time.Now().Unix()
+		index    = uint64(0)
+		txType   = uint64(0)
+	)
+
+	coin := openwallet.Coin{
+		Symbol:     bs.wm.Symbol(),
+		IsContract: false,
+	}
+
+	if isTokenTransfer {
+		txType = 1
+	}
+
+	for _, tx := range txs {
+		tx.FilterFunc = bs.ScanTargetFuncV2
+
+		ethAmount := tx.GetAmountEthString()
+		feeprice := tx.GetTxFeeValue()
+
+		address := ""
+		if isInput {
+			address = tx.From
+		} else {
+			address = tx.To
+		}
+		address = bs.wm.CustomAddressEncodeFunc(address)
+		targetResult := tx.FilterFunc(openwallet.ScanTargetParam{
+			ScanTarget:     address,
+			Symbol:         bs.wm.Symbol(),
+			ScanTargetType: openwallet.ScanTargetTypeAccountAddress})
+		if targetResult.Exist {
+
+			detail := openwallet.Recharge{}
+			detail.Sid = openwallet.GenTxInputSID(tx.Hash, bs.wm.Symbol(), "", index)
+			detail.TxID = tx.Hash
+			detail.Address = address
+			detail.Coin = coin
+			detail.Amount = ethAmount
+			detail.BlockHash = tx.BlockHash
+			detail.BlockHeight = tx.BlockHeight
+			detail.Index = index
+			detail.CreateAt = createAt
+			detail.TxType = txType
+
+			ed := extractData[targetResult.SourceKey]
+			if ed == nil {
+				ed = openwallet.NewBlockExtractData()
+				extractData[targetResult.SourceKey] = ed
+			}
+
+			if isInput {
+				txInput := &openwallet.TxInput{Recharge: detail}
+				ed.TxInputs = append(ed.TxInputs, txInput)
+
+				//手续费不为0，手续费作为一个输入
+				if !feeprice.IsZero() {
+					index = index + 1
+					feeInput := &openwallet.TxInput{}
+					feeInput.Recharge.Sid = openwallet.GenTxInputSID(tx.Hash, bs.wm.Symbol(), "", index)
+					feeInput.Recharge.TxID = tx.Hash
+					feeInput.Recharge.Address = address
+					feeInput.Recharge.Coin = coin
+					feeInput.Recharge.Amount = feeprice.String()
+					feeInput.Recharge.BlockHash = tx.BlockHash
+					feeInput.Recharge.BlockHeight = tx.BlockHeight
+					feeInput.Recharge.Index = index
+					feeInput.Recharge.CreateAt = createAt
+					feeInput.Recharge.TxType = txType
+					ed.TxInputs = append(ed.TxInputs, feeInput)
+				}
+
+			} else {
+				txOutPut := &openwallet.TxOutPut{Recharge: detail}
+				ed.TxOutputs = append(ed.TxOutputs, txOutPut)
+			}
+			index = index + 1
+		}
+
+		addrs = append(addrs, address+":"+ethAmount)
+
+	}
+
+	return addrs
 }
 
 // extractERC20Transaction

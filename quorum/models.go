@@ -80,7 +80,7 @@ func parseBlockFormMoralis(jsonData *gjson.Result, decimals int32) *EthBlock {
 			blockTx.Value = hexutil.EncodeBig(common.StringNumToBigIntWithExp(tx.Get("value").String(), 0))
 			blockTx.BlockHeight = block.BlockHeight
 			blockTx.Status = tx.Get("receipt_status").Uint()
-			blockTx.IsInternal = false
+			//blockTx.IsInternal = false
 			blockTx.Decimal = decimals
 
 			blockTxReceipt := &TransactionReceipt{ETHReceipt: &types.Receipt{}}
@@ -132,8 +132,7 @@ func parseBlockFormMoralis(jsonData *gjson.Result, decimals int32) *EthBlock {
 			blockTxReceipt.Raw = string(raw)
 			blockTx.Receipt = blockTxReceipt
 
-			//主交易加入到数组
-			blockTxs = append(blockTxs, blockTx)
+			blockTx.InternalTxs = make([]*BlockTransaction, 0)
 
 			//把内部交易的原生币交易也加入到交易数组
 			interTxs := tx.Get("internal_transactions").Array()
@@ -141,6 +140,7 @@ func parseBlockFormMoralis(jsonData *gjson.Result, decimals int32) *EthBlock {
 				for _, interTx := range interTxs {
 					value, _ := decimal.NewFromString(interTx.Get("value").String())
 					if !value.IsZero() {
+
 						blockInterTx := &BlockTransaction{}
 						blockInterTx.Hash = blockTx.Hash
 						blockInterTx.BlockNumber = blockTx.BlockNumber
@@ -150,26 +150,29 @@ func parseBlockFormMoralis(jsonData *gjson.Result, decimals int32) *EthBlock {
 						blockInterTx.Value = hexutil.EncodeBig(common.StringNumToBigIntWithExp(interTx.Get("value").String(), 0))
 						blockInterTx.BlockHeight = block.BlockHeight
 						blockInterTx.Status = blockTx.Status
-						blockInterTx.IsInternal = true
 						blockInterTx.Receipt = nil
 						blockInterTx.Decimal = decimals
 
-						blockInterTxReceipt := &TransactionReceipt{ETHReceipt: &types.Receipt{}}
-						blockInterTxReceipt.ETHReceipt.Status = blockTx.Status
-						blockInterTxReceipt.ETHReceipt.TxHash = ethcom.HexToHash(blockTx.Hash)
-						blockInterTxReceipt.ETHReceipt.Logs = make([]*types.Log, 0)
-						//最后把ETHReceipt转为raw字符串
-						blockInterTxReceiptRaw, _ := json.Marshal(blockInterTxReceipt.ETHReceipt)
-						blockInterTxReceipt.Raw = string(blockInterTxReceiptRaw)
-						blockInterTx.Receipt = blockInterTxReceipt
+						//blockInterTxReceipt := &TransactionReceipt{ETHReceipt: &types.Receipt{}}
+						//blockInterTxReceipt.ETHReceipt.Status = blockTx.Status
+						//blockInterTxReceipt.ETHReceipt.TxHash = ethcom.HexToHash(blockTx.Hash)
+						//blockInterTxReceipt.ETHReceipt.Logs = make([]*types.Log, 0)
+						////最后把ETHReceipt转为raw字符串
+						//blockInterTxReceiptRaw, _ := json.Marshal(blockInterTxReceipt.ETHReceipt)
+						//blockInterTxReceipt.Raw = string(blockInterTxReceiptRaw)
+						//blockInterTx.Receipt = blockInterTxReceipt
 
 						//添加内部交易
-						blockTxs = append(blockTxs, blockInterTx)
+						//blockTxs = append(blockTxs, blockInterTx)
+						blockTx.InternalTxs = append(blockTx.InternalTxs, blockInterTx)
+
 					}
 
 				}
 			}
 
+			//主交易加入到数组
+			blockTxs = append(blockTxs, blockTx)
 		}
 	}
 	block.Transactions = blockTxs
@@ -308,7 +311,7 @@ type BlockTransaction struct {
 	Status           uint64 `json:"-"`
 	Receipt          *TransactionReceipt
 	Decimal          int32
-	IsInternal       bool //是否内部原生币交易
+	InternalTxs      []*BlockTransaction `json:"-"` //内部交易数组
 }
 
 func (this *BlockTransaction) GetAmountEthString() string {
@@ -318,16 +321,20 @@ func (this *BlockTransaction) GetAmountEthString() string {
 }
 
 func (this *BlockTransaction) GetTxFeeEthString() string {
-	//todo: gas无空值，手续费为0
+	return this.GetTxFeeValue().String()
+}
+
+func (this *BlockTransaction) GetTxFeeValue() decimal.Decimal {
+	// gas无空值，手续费为0
 	if len(this.GasPrice) == 0 {
-		return "0"
+		return decimal.Zero
 	}
 	gasPrice, _ := hexutil.DecodeBig(this.GasPrice)
 	gas := common.StringNumToBigIntWithExp(this.Gas, 0)
 	fee := big.NewInt(0)
 	fee.Mul(gasPrice, gas)
 	feeprice := common.BigIntToDecimals(fee, this.Decimal)
-	return feeprice.String()
+	return feeprice
 }
 
 type BlockHeader struct {

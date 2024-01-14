@@ -59,19 +59,19 @@ func (sub *subscriberSingle) BlockExtractSmartContractDataNotify(sourceKey strin
 	//log.Notice("sourceKey:", sourceKey)
 	//log.Std.Notice("data.ContractTransaction: %+v", data)
 
-	for i, event := range data.Events {
-		log.Std.Notice("data.Contract[%d]: address: %s, ContractID: %s", i, event.Contract.Address, event.Contract.ContractID)
-		log.Std.Notice("data.Events[%d]: %+v", i, event)
-		//assetsMgr, err := openw.GetAssetsAdapter(data.Coin.Symbol)
-		//if err != nil {
-		//	log.Error(data.Coin.Symbol, "is not support")
-		//	return nil
-		//}
-		//nftTx, _ := assetsMgr.GetNFTContractDecoder().GetNFTTransfer(event)
-		//if nftTx != nil {
-		//	log.Std.Notice("NFT Transfer[%d]: %+v", i, nftTx)
-		//}
-	}
+	//for i, event := range data.Events {
+	//	log.Std.Notice("data.Contract[%d]: address: %s, ContractID: %s", i, event.Contract.Address, event.Contract.ContractID)
+	//	log.Std.Notice("data.Events[%d]: %+v", i, event)
+	//assetsMgr, err := openw.GetAssetsAdapter(data.Coin.Symbol)
+	//if err != nil {
+	//	log.Error(data.Coin.Symbol, "is not support")
+	//	return nil
+	//}
+	//nftTx, _ := assetsMgr.GetNFTContractDecoder().GetNFTTransfer(event)
+	//if nftTx != nil {
+	//	log.Std.Notice("NFT Transfer[%d]: %+v", i, nftTx)
+	//}
+	//}
 
 	return nil
 }
@@ -107,12 +107,17 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 
 	//addrs[contract.Address] = openwallet.ScanTargetResult{SourceKey: contract.ContractID, Exist: true, TargetInfo: contract}
 	addrs["0xfe1dca6c8ab4a83a4400e9535b16f86d965cf38e"] = openwallet.ScanTargetResult{
+		SourceKey:  "sender",
+		Exist:      true,
+		TargetInfo: nil,
+	}
+	addrs["0xc823c84efac64aa9b20fcb3464eefb6dc7ba7010"] = openwallet.ScanTargetResult{
 		SourceKey:  "receiver",
 		Exist:      true,
 		TargetInfo: nil,
 	}
-	addrs["0xd35f9ea14d063af9b3567064fab567275b09f03d"] = openwallet.ScanTargetResult{
-		SourceKey:  "sender",
+	addrs["0x2cad75e380ddb12329231df6793a0343917be8b3"] = openwallet.ScanTargetResult{
+		SourceKey:  "relay",
 		Exist:      true,
 		TargetInfo: nil,
 	}
@@ -133,7 +138,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(51951403)
+	scanner.SetRescanBlockHeight(52154028)
 	scanner.Run()
 
 	<-endRunning
