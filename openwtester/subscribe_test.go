@@ -106,21 +106,21 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 	contracts[contract2.Address] = openwallet.ScanTargetResult{SourceKey: contract2.ContractID, Exist: true, TargetInfo: contract2}
 
 	//addrs[contract.Address] = openwallet.ScanTargetResult{SourceKey: contract.ContractID, Exist: true, TargetInfo: contract}
-	addrs["0xfe1dca6c8ab4a83a4400e9535b16f86d965cf38e"] = openwallet.ScanTargetResult{
+	addrs["0x71908408197b2c9fd44b90471241d74d02df19dd"] = openwallet.ScanTargetResult{
 		SourceKey:  "sender",
 		Exist:      true,
 		TargetInfo: nil,
 	}
-	addrs["0xc823c84efac64aa9b20fcb3464eefb6dc7ba7010"] = openwallet.ScanTargetResult{
+	addrs["0x6a290783cf7c745ddfcef1e3e4dc2f02a8ee91c5"] = openwallet.ScanTargetResult{
 		SourceKey:  "receiver",
 		Exist:      true,
 		TargetInfo: nil,
 	}
-	addrs["0x2cad75e380ddb12329231df6793a0343917be8b3"] = openwallet.ScanTargetResult{
-		SourceKey:  "relay",
-		Exist:      true,
-		TargetInfo: nil,
-	}
+	//addrs["0x2cad75e380ddb12329231df6793a0343917be8b3"] = openwallet.ScanTargetResult{
+	//	SourceKey:  "relay",
+	//	Exist:      true,
+	//	TargetInfo: nil,
+	//}
 
 	scanTargetFunc := func(target openwallet.ScanTargetParam) openwallet.ScanTargetResult {
 		if target.ScanTargetType == openwallet.ScanTargetTypeContractAddress {
@@ -138,7 +138,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(52154028)
+	scanner.SetRescanBlockHeight(52586446)
 	scanner.Run()
 
 	<-endRunning

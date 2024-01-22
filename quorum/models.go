@@ -139,7 +139,8 @@ func parseBlockFormMoralis(jsonData *gjson.Result, decimals int32) *EthBlock {
 			if interTxs != nil && len(interTxs) > 0 {
 				for _, interTx := range interTxs {
 					value, _ := decimal.NewFromString(interTx.Get("value").String())
-					if !value.IsZero() {
+					txType := interTx.Get("type").String()
+					if !value.IsZero() && txType != "DELEGATECALL" {
 
 						blockInterTx := &BlockTransaction{}
 						blockInterTx.Hash = blockTx.Hash
