@@ -30,6 +30,12 @@ import (
 	"testing"
 )
 
+const (
+	//ChainSymbol = "QUORUM"
+	//ChainSymbol = "MATIC"
+	ChainSymbol = "ETH"
+)
+
 var (
 	tw *WalletManager
 )
@@ -43,7 +49,7 @@ func testNewWalletManager() *WalletManager {
 	wm := NewWalletManager()
 
 	//读取配置
-	absFile := filepath.Join("conf", "conf.ini")
+	absFile := filepath.Join("conf", fmt.Sprintf("%s.ini", ChainSymbol))
 	//log.Debug("absFile:", absFile)
 	c, err := config.NewConfig("ini", absFile)
 	if err != nil {
@@ -244,7 +250,7 @@ func TestWalletManager_GetBlockWithReceipts(t *testing.T) {
 
 func TestWalletManager_GetBlockByNum(t *testing.T) {
 	wm := testNewWalletManager()
-	_, err := wm.GetBlockByNum(52342462, true)
+	_, err := wm.GetBlockByNum(19088084, true)
 	if err != nil {
 		t.Errorf("GetTransactionCount error: %v", err)
 		return

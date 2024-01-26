@@ -111,7 +111,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		Exist:      true,
 		TargetInfo: nil,
 	}
-	addrs["0x6a290783cf7c745ddfcef1e3e4dc2f02a8ee91c5"] = openwallet.ScanTargetResult{
+	addrs["0x0ccc8673ca64a9ff4172496c529d64eb96e12c87"] = openwallet.ScanTargetResult{
 		SourceKey:  "receiver",
 		Exist:      true,
 		TargetInfo: nil,
@@ -138,7 +138,7 @@ func TestSubscribeAddress_QUORUM(t *testing.T) {
 		return
 	}
 	scanner.SetBlockScanTargetFuncV2(scanTargetFunc)
-	scanner.SetRescanBlockHeight(52586446)
+	scanner.SetRescanBlockHeight(19088084)
 	scanner.Run()
 
 	<-endRunning
