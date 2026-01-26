@@ -39,7 +39,7 @@ type EthTransactionDecoder struct {
 	wm *WalletManager //钱包管理者
 }
 
-//NewTransactionDecoder 交易单解析器
+// NewTransactionDecoder 交易单解析器
 func NewTransactionDecoder(wm *WalletManager) *EthTransactionDecoder {
 	decoder := EthTransactionDecoder{}
 	decoder.wm = wm
@@ -286,7 +286,7 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenRawTransaction(wrapper ope
 	return nil
 }
 
-//CreateRawTransaction 创建交易单
+// CreateRawTransaction 创建交易单
 func (decoder *EthTransactionDecoder) CreateRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 	if !rawTx.Coin.IsContract {
 		return decoder.CreateSimpleRawTransaction(wrapper, rawTx, nil)
@@ -294,7 +294,11 @@ func (decoder *EthTransactionDecoder) CreateRawTransaction(wrapper openwallet.Wa
 	return decoder.CreateErc20TokenRawTransaction(wrapper, rawTx)
 }
 
-//SignRawTransaction 签名交易单
+//func (decoder *EthTransactionDecoder) CreateRawTransactionJSON(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) (*openwallet.TxData, error) {
+//	return nil, nil
+//}
+
+// SignRawTransaction 签名交易单
 func (decoder *EthTransactionDecoder) SignRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
 	if rawTx.Signatures == nil || len(rawTx.Signatures) == 0 {
@@ -445,7 +449,7 @@ func (decoder *EthTransactionDecoder) SubmitRawTransaction(wrapper openwallet.Wa
 	return owtx, nil
 }
 
-//VerifyRawTransaction 验证交易单，验证交易单并返回加入签名后的交易单
+// VerifyRawTransaction 验证交易单，验证交易单并返回加入签名后的交易单
 func (decoder *EthTransactionDecoder) VerifyRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) error {
 
 	if rawTx.Signatures == nil || len(rawTx.Signatures) == 0 {
@@ -485,7 +489,7 @@ func (decoder *EthTransactionDecoder) VerifyRawTransaction(wrapper openwallet.Wa
 	return nil
 }
 
-//CreateSummaryRawTransaction 创建汇总交易，返回原始交易单数组
+// CreateSummaryRawTransaction 创建汇总交易，返回原始交易单数组
 func (decoder *EthTransactionDecoder) CreateSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransaction, error) {
 	var (
 		rawTxWithErrArray []*openwallet.RawTransactionWithError
@@ -509,7 +513,7 @@ func (decoder *EthTransactionDecoder) CreateSummaryRawTransaction(wrapper openwa
 	return rawTxArray, nil
 }
 
-//CreateSimpleSummaryRawTransaction 创建QUORUM汇总交易
+// CreateSimpleSummaryRawTransaction 创建QUORUM汇总交易
 func (decoder *EthTransactionDecoder) CreateSimpleSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
 
 	var (
@@ -616,7 +620,7 @@ func (decoder *EthTransactionDecoder) CreateSimpleSummaryRawTransaction(wrapper 
 	return rawTxArray, nil
 }
 
-//CreateErc20TokenSummaryRawTransaction 创建ERC20Token汇总交易
+// CreateErc20TokenSummaryRawTransaction 创建ERC20Token汇总交易
 func (decoder *EthTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.RawTransactionWithError, error) {
 
 	var (
@@ -827,7 +831,7 @@ func (decoder *EthTransactionDecoder) CreateErc20TokenSummaryRawTransaction(wrap
 	return rawTxArray, nil
 }
 
-//createRawTransaction
+// createRawTransaction
 func (decoder *EthTransactionDecoder) createRawTransaction(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction, addrBalance *AddrBalance, fee *txFeeInfo, callData string, tmpNonce *uint64) *openwallet.Error {
 
 	var (
@@ -968,4 +972,21 @@ func (decoder *EthTransactionDecoder) CreateSummaryRawTransactionWithError(wrapp
 	} else {
 		return decoder.CreateSimpleSummaryRawTransaction(wrapper, sumRawTx)
 	}
+}
+
+// *********************************** 安全链路构建交易单 ***********************************
+
+// CreateRawTransactionJSON 创建交易单
+func (decoder *EthTransactionDecoder) CreateRawTransactionJSON(wrapper openwallet.WalletDAI, rawTx *openwallet.RawTransaction) (*openwallet.TxData, error) {
+	return openwallet.BuildTransaction(decoder, wrapper, rawTx)
+}
+
+// SubmitRawTransactionJSON 广播交易单
+func (decoder *EthTransactionDecoder) SubmitRawTransactionJSON(wrapper openwallet.WalletDAI, txData *openwallet.TxData) (*openwallet.Transaction, error) {
+	return openwallet.SendTransaction(decoder, wrapper, txData)
+}
+
+// CreateSummaryRawTransactionJSON 创建汇总交易
+func (decoder *EthTransactionDecoder) CreateSummaryRawTransactionJSON(wrapper openwallet.WalletDAI, sumRawTx *openwallet.SummaryRawTransaction) ([]*openwallet.TxData, error) {
+	return openwallet.BuildSummaryTransaction(decoder, wrapper, sumRawTx)
 }
