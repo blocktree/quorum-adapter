@@ -5,7 +5,7 @@ go 1.26
 require (
 	github.com/astaxie/beego v1.12.1
 	github.com/blocktree/go-owcrypt v1.1.14
-	github.com/blocktree/openwallet/v2 v2.7.3
+	github.com/blocktree/openwallet/v2 v2.7.4
 	github.com/ethereum/go-ethereum v1.10.17
 	github.com/imroc/req v0.3.2
 	github.com/shopspring/decimal v0.0.0-20200105231215-408a2507e114
